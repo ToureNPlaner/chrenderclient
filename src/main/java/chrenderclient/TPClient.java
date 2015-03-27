@@ -28,11 +28,12 @@ public class TPClient {
 
     public PrioResult BBPrioRequest(Rectangle2D.Double range, int minPrio) throws IOException {
         PrioResult res = null;
-        HttpPost httpPost = new HttpPost(this.uri + "/algbbpriolimited");
+        HttpPost httpPost = new HttpPost(this.uri + "/algbbbundle");
         String bS = "{\"bbox\":" +
                 "{\"x\":" + range.getX() + ",\"y\":" + range.getY() +
                 ",\"width\":" + range.getWidth() + ",\"height\":" + range.getHeight() + "}," +
-                "\"nodeCount\":1000,\"mode\":\"auto\",\"level\":0,\"minLen\":40,\"maxLen\":8000,\"maxRatio\":0.01}";
+                "\"nodeCount\":1000,\"mode\":\"exact\",\"level\":"+minPrio+",\"minLen\":2,\"maxLen\":40,\"maxRatio\":0.01, " +
+                "\"coreSize\" : 0}";
         System.err.println(bS);
         byte[] b = bS.getBytes("UTF-8");
         HttpEntity body = new ByteArrayEntity(b, ContentType.APPLICATION_JSON);

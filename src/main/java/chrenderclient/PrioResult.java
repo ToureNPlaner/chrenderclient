@@ -61,7 +61,7 @@ public class PrioResult {
                 fieldname = jp.getCurrentName();
                 token = jp.nextToken(); // move to value, or
                 // START_OBJECT/START_ARRAY
-                if ("edges".equals(fieldname)) {
+                if ("upEdges".equals(fieldname) || "downEdges".equals(fieldname)) {
                     // Should be on START_ARRAY
                     if (token != JsonToken.START_ARRAY) {
                         throw new JsonParseException("edges is no array", jp.getCurrentLocation());
