@@ -20,15 +20,12 @@ import java.util.ArrayList;
 public class ZoomPanel extends JPanel {
 
     public static final long serialVersionUID = 1;
-    private Image smphone;
-    private Image tablet;
     Rectangle2D.Double area = new Rectangle2D.Double(17, 44, 302, 469);
 
     Rectangle localZoomRect = null;
     PrioResult priores;
 
     boolean showPriorityNodes = false;
-    boolean isDisplayTablet = false;
     boolean paintZoomRect = false;
 
 
@@ -37,8 +34,6 @@ public class ZoomPanel extends JPanel {
     BasicStroke largeStreetStroke = new BasicStroke(1.4F);
 
     public ZoomPanel() {
-        getSmartPhoneImage();
-        getTabletImage();
     }
 
     public void addPaintPoint(Point point) {
@@ -46,28 +41,6 @@ public class ZoomPanel extends JPanel {
     }
 
     public void reset() {
-    }
-
-    private void getSmartPhoneImage() {
-        MediaTracker tracker = new MediaTracker(this);
-        Toolkit toolkit = getToolkit();
-        smphone = toolkit.createImage("images/smphone.png");
-        tracker.addImage(smphone, 1);
-        try {
-            tracker.waitForAll();
-        } catch (Exception exception) {
-        }
-    }
-
-    private void getTabletImage() {
-        MediaTracker tracker = new MediaTracker(this);
-        Toolkit toolkit = getToolkit();
-        tablet = toolkit.createImage("images/tablet.png");
-        tracker.addImage(tablet, 1);
-        try {
-            tracker.waitForAll();
-        } catch (Exception exception) {
-        }
     }
 
     private AlphaComposite makeComposite(float alpha) {
@@ -87,10 +60,6 @@ public class ZoomPanel extends JPanel {
             if (localZoomRect != null)
                 g.drawRect(localZoomRect.x, localZoomRect.y, localZoomRect.width, localZoomRect.height);
         }
-        if (!isDisplayTablet)
-            paintPhone(g);
-        else
-            paintTablet(g);
     }
 
     public void paintMap(Graphics g) {
@@ -122,15 +91,6 @@ public class ZoomPanel extends JPanel {
         }
     }
 
-
-    public void paintPhone(Graphics g) {
-        g.drawImage(smphone, 0, 0, this);
-    }
-
-    public void paintTablet(Graphics g) {
-        g.drawImage(tablet, 0, 0, this);
-    }
-
     private void paintPoint(Point point, Graphics g) {
         g.setColor(Color.BLUE);
         if (area.contains(point))
@@ -146,10 +106,6 @@ public class ZoomPanel extends JPanel {
         g2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                 RenderingHints.VALUE_ANTIALIAS_ON);
 
-        if (!isDisplayTablet)
-            g.drawImage(smphone, 0, 0, this);
-        else
-            g.drawImage(tablet, 0, 0, this);
         ImageIO.write(img, "png", new File(fileName));
     }
 

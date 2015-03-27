@@ -18,8 +18,6 @@ import java.util.logging.Logger;
  */
 public class ZoomForm extends javax.swing.JFrame {
     public static final long serialVersionUID = 42;
-    Cursor touchpen;
-    boolean isCursorTouchpen = true;
     TPClient tp;
 
     int xBorder = 17;
@@ -48,22 +46,14 @@ public class ZoomForm extends javax.swing.JFrame {
     public ZoomForm(TPClient tp) {
         this.tp = tp;
         initComponents();
-        createTouchPenCursor();
-        this.setPreferredSize(new Dimension(400, 660));
+        Dimension dim = new Dimension(1900, 1000);
+        this.setPreferredSize(dim);
         //this.resize(new Dimension(400, 660));
-        zoomPanel.setPreferredSize(new Dimension(335, 556));
-        zoomPanel.isDisplayTablet = false;
-        zoomPanel.area = new Rectangle2D.Double(17, 44, 302, 469);
-        priorityLabel.setText("0");
-        prioritySlider.setValue(0);
+        zoomPanel.setPreferredSize(new Dimension(1800, 900));
+        zoomPanel.area = new Rectangle2D.Double(0, 0, 1800, 900);
+        priorityLabel.setText("20");
+        prioritySlider.setValue(20);
         setView();
-    }
-
-    public final void createTouchPenCursor() {
-        Toolkit toolkit = Toolkit.getDefaultToolkit();
-        Image image = toolkit.getImage("images/pen.gif");
-        Point hotSpot = new Point(0, 0);
-        touchpen = toolkit.createCustomCursor(image, hotSpot, "Pen");
     }
 
 
@@ -90,9 +80,6 @@ public class ZoomForm extends javax.swing.JFrame {
         UndoLastMarkerMenuItem = new javax.swing.JMenuItem();
         AlgorithmsMenu = new javax.swing.JMenu();
         RunDijkstraMenuItem = new javax.swing.JMenuItem();
-        DisplayMenu = new javax.swing.JMenu();
-        SmartPhoneMenuItem = new javax.swing.JMenuItem();
-        TabletMenuItem = new javax.swing.JMenuItem();
         OptionMenu = new javax.swing.JMenu();
         ShowPriorityNodesMenuItem = new javax.swing.JMenuItem();
         TestMenu = new javax.swing.JMenu();
@@ -105,7 +92,7 @@ public class ZoomForm extends javax.swing.JFrame {
 
         prioritySlider.setMinorTickSpacing(5);
         prioritySlider.setPaintLabels(true);
-        prioritySlider.setValue(20);
+        prioritySlider.setValue(0);
         prioritySlider.addChangeListener(new javax.swing.event.ChangeListener() {
             public void stateChanged(javax.swing.event.ChangeEvent evt) {
                 prioritySliderStateChanged(evt);
@@ -214,26 +201,6 @@ public class ZoomForm extends javax.swing.JFrame {
 
         MenuBar.add(AlgorithmsMenu);
 
-        DisplayMenu.setText("Display");
-
-        SmartPhoneMenuItem.setText("SmartPhone");
-        SmartPhoneMenuItem.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                SmartPhoneMenuItemActionPerformed(evt);
-            }
-        });
-        DisplayMenu.add(SmartPhoneMenuItem);
-
-        TabletMenuItem.setText("Tablet");
-        TabletMenuItem.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                TabletMenuItemActionPerformed(evt);
-            }
-        });
-        DisplayMenu.add(TabletMenuItem);
-
-        MenuBar.add(DisplayMenu);
-
         OptionMenu.setText("Options");
 
         ShowPriorityNodesMenuItem.setText("Show Priority Nodes");
@@ -257,7 +224,6 @@ public class ZoomForm extends javax.swing.JFrame {
         layout.setHorizontalGroup(
                 layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                         .addGroup(layout.createSequentialGroup()
-                                .addGap(33, 33, 33)
                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                         .addGroup(layout.createSequentialGroup()
                                                 .addComponent(prioritySlider, javax.swing.GroupLayout.DEFAULT_SIZE, 323, Short.MAX_VALUE)
@@ -266,12 +232,10 @@ public class ZoomForm extends javax.swing.JFrame {
                                                         .addComponent(fixedMinPrioLabel)
                                                         .addComponent(priorityLabel, javax.swing.GroupLayout.PREFERRED_SIZE, 32, javax.swing.GroupLayout.PREFERRED_SIZE)))
                                         .addComponent(zoomPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                .addGap(44, 44, 44))
-        );
+                        ));
         layout.setVerticalGroup(
                 layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                         .addGroup(layout.createSequentialGroup()
-                                .addContainerGap()
                                 .addComponent(zoomPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -280,8 +244,7 @@ public class ZoomForm extends javax.swing.JFrame {
                                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                                 .addComponent(priorityLabel))
                                         .addComponent(prioritySlider, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                .addContainerGap(40, Short.MAX_VALUE))
-        );
+                        ));
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
@@ -291,10 +254,7 @@ public class ZoomForm extends javax.swing.JFrame {
     }
 
     private void zoomPanelMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_zoomPanelMouseEntered
-        if (isCursorTouchpen)
-            setCursor(touchpen);
-        else
-            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }//GEN-LAST:event_zoomPanelMouseEntered
 
     private void zoomPanelMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_zoomPanelMouseExited
@@ -307,8 +267,8 @@ public class ZoomForm extends javax.swing.JFrame {
     }//GEN-LAST:event_LoadGraphItemActionPerformed
 
     private void setView() {
-        int x = 37729;
-        int y = 116759;
+        int x = 6;
+        int y = 49;
         width = (int) (zoomPanel.getWidth() * 50.0);
         height = (int) (zoomPanel.getHeight() * 50.0);
         view = new Rectangle2D.Double(x, y, width, height);
@@ -439,38 +399,14 @@ public class ZoomForm extends javax.swing.JFrame {
     private void RunDijkstraMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_RunDijkstraMenuItemActionPerformed
     }//GEN-LAST:event_RunDijkstraMenuItemActionPerformed
 
-    private void SmartPhoneMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_SmartPhoneMenuItemActionPerformed
-        this.setPreferredSize(new Dimension(400, 660));
-        //this.resize(new Dimension(400, 660));
-        zoomPanel.setPreferredSize(new Dimension(335, 556));
-        zoomPanel.isDisplayTablet = false;
-        zoomPanel.area = new Rectangle2D.Double(17, 44, 302, 469);
-        xBorder = 17;
-        yBorder = 44;
-        setView();
-        extractGraph(view);
-        repaint();
-    }//GEN-LAST:event_SmartPhoneMenuItemActionPerformed
 
-    private void TabletMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_TabletMenuItemActionPerformed
-        this.setPreferredSize(new Dimension(830, 620));
-        //this.resize(new Dimension(830, 620));
-        zoomPanel.setPreferredSize(new Dimension(759, 493));
-        zoomPanel.isDisplayTablet = true;
-        zoomPanel.area = new Rectangle2D.Double(58, 46, 643, 402);
-        xBorder = 58;
-        yBorder = 46;
-        setView();
-        extractGraph(view);
-        repaint();
-    }//GEN-LAST:event_TabletMenuItemActionPerformed
 
     private void zoomPanelMouseDragged(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_zoomPanelMouseDragged
-        if (isCursorTouchpen) {
-            zoomPanelMouseReleased(evt);
-            originalX = evt.getX();
-            originalY = evt.getY();
-        }
+
+        zoomPanelMouseReleased(evt);
+        originalX = evt.getX();
+        originalY = evt.getY();
+
         justDragged = true;
     }//GEN-LAST:event_zoomPanelMouseDragged
 
@@ -485,32 +421,6 @@ public class ZoomForm extends javax.swing.JFrame {
 
     Random generator = new Random();
 
-    private void mySort(int start, int end, int[] data1, int[] data2) {
-        // quicksort between start and end (including)
-        // sort according to (data1,data2)
-
-        if (start >= end) {
-            return;
-        }
-        int pivot = start + generator.nextInt(end - start);
-        //System.out.println("QS " + start + " " + end+" "+pivot+" "+data1[end]+ " "+data1[pivot]);
-
-        swapElements(pivot, end, data1, data2);
-        //System.out.println("QS2 " + start + " " + end+" "+pivot+" "+data1[end]+ " "+data1[pivot]);
-
-        int storage = start;
-        for (int j = start; j < end; j++) {
-            // compare elements with pivot (at end)
-            if ((data1[j] < data1[end]) || (data1[j] == data1[end] && data2[j] < data2[end])) {
-                swapElements(j, storage, data1, data2);
-                storage++;
-            }
-        }
-        // System.out.println("storage: "+storage);
-        swapElements(storage, end, data1, data2);
-        mySort(start, storage - 1, data1, data2);
-        mySort(storage + 1, end, data1, data2);
-    }
 
 
     private void ShowPriorityNodesMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ShowPriorityNodesMenuItemActionPerformed
@@ -529,7 +439,7 @@ public class ZoomForm extends javax.swing.JFrame {
         extendedRange.y = range.y - (extendFactor - 1) / 2 * range.height;
         extendedRange.width = extendFactor * range.width;
         extendedRange.height = extendFactor * range.height;
-        if (isCursorTouchpen) {
+        if (zoomPanel.localZoomRect == null) {
             long time = System.currentTimeMillis();
 
             //ids = prioDings.getNodeSelection(extendedRange, minPriority);
@@ -542,7 +452,7 @@ public class ZoomForm extends javax.swing.JFrame {
             }
             long time2 = System.currentTimeMillis();
             //System.out.println("PST:" + (time2 - time) + " with " + ids.size());
-        } else if (zoomPanel.localZoomRect != null) {
+        } else {
             Rectangle2D.Double local = new Rectangle2D.Double();
             local.x = (int) (view.x + (zoomPanel.localZoomRect.x - xBorder) * factor);
             local.y = (int) (view.y + (zoomPanel.localZoomRect.y - yBorder) * factor);
