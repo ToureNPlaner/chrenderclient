@@ -1,4 +1,4 @@
-package chrenderclient;
+package chrenderclient.clientgraph;
 
 
 import org.codehaus.jackson.JsonParseException;
@@ -6,36 +6,13 @@ import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.JsonToken;
 import org.codehaus.jackson.map.ObjectMapper;
 
-import java.awt.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 
 public class PrioResult {
-    public static class DrawEdge {
-        public final Point p1;
-        public final Point p2;
-        public final int type;
 
-        public DrawEdge(int p1x, int p1y, int p2x, int p2y, int type) {
-            p1 = new Point(p1x, p1y);
-            p2 = new Point(p2x, p2y);
-            this.type = type;
-        }
-    }
-
-    public static class Edge {
-        public int src;
-        public int trgt;
-        public int cost;
-        public ArrayList<DrawEdge> draw;
-
-        public Edge() {
-            draw = new ArrayList<DrawEdge>();
-        }
-    }
-
-    public final ArrayList<PrioResult.Edge> edges;
+    public final ArrayList<Edge> edges;
 
     public PrioResult() {
         edges = new ArrayList<Edge>();
@@ -71,7 +48,7 @@ public class PrioResult {
                         if (token != JsonToken.START_OBJECT) {
                             throw new JsonParseException("edge is no object", jp.getCurrentLocation());
                         }
-                        PrioResult.Edge edge = new Edge();
+                        Edge edge = new Edge();
                         while (jp.nextToken() != JsonToken.END_OBJECT) {
                             fieldname = jp.getCurrentName();
                             token = jp.nextToken();
@@ -89,7 +66,7 @@ public class PrioResult {
 
                                 while (jp.nextToken() != JsonToken.END_ARRAY) {
                                     // TODO Error checking i.e. for too few parameters would be kinda nice
-                                    edge.draw.add(new DrawEdge(jp.getIntValue(), jp.nextIntValue(0), jp.nextIntValue(0), jp.nextIntValue(0), jp.nextIntValue(0)));
+                                    edge.path.add(jp.getIntValue(), jp.nextIntValue(0), jp.nextIntValue(0), jp.nextIntValue(0), jp.nextIntValue(0));
                                 }
                             }
                         }

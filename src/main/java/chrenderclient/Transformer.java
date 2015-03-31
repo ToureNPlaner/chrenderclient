@@ -4,6 +4,10 @@
  */
 package chrenderclient;
 
+import chrenderclient.clientgraph.Edge;
+import chrenderclient.clientgraph.PrioResult;
+import chrenderclient.clientgraph.RefinedPath;
+
 import java.awt.geom.Rectangle2D;
 
 /**
@@ -24,17 +28,28 @@ public class Transformer {
         double scale = getScaleFactor(master, slave);
         System.err.println(scale);
         for (int i = 0; i < priores.edges.size(); i++) {
-            PrioResult.Edge edge = priores.edges.get(i);
-            for (int j = 0; j < edge.draw.size(); j++) {
-                transformPointForScreen(edge.draw.get(j), slave.x, slave.y, scale, master.x, master.y);
+            Edge edge = priores.edges.get(i);
+            for (int pathElement = 0; pathElement < edge.path.size(); pathElement++) {
+                transformPointForScreen(edge.path, pathElement, slave.x, slave.y, scale, master.x, master.y);
             }
         }
     }
 
-    private void transformPointForScreen(PrioResult.DrawEdge e, double slaveX, double slaveY, double scale, double masterX, double masterY) {
-        e.p1.x = (int) ((e.p1.getX() - masterX) / scale + slaveX);
-        e.p1.y = (int) ((e.p1.getY() - masterY) / scale + slaveY);
-        e.p2.x = (int) ((e.p2.getX() - masterX) / scale + slaveX);
-        e.p2.y = (int) ((e.p2.getY() - masterY) / scale + slaveY);
+    public int transformX(int x, Rectangle2D.Double master, Rectangle2D.Double slave) {
+        double scale = getScaleFactor(master, slave);
+        return (int)((x - master.x) / scale + slave.x);
+    }
+
+    public int transformY(int y, Rectangle2D.Double master, Rectangle2D.Double slave) {
+        double scale = getScaleFactor(master, slave);
+        return (int)((y - master.y) / scale + slave.y);
+    }
+
+    private void transformPointForScreen(RefinedPath path, int pos, double slaveX, double slaveY, double scale, double masterX, double masterY) {
+        path.setX1(pos, (int)((path.getX1(pos) - masterX) / scale + slaveX));
+        path.setY1(pos, (int)((path.getY1(pos) - masterY) / scale + slaveY));
+
+        path.setX2(pos, (int)((path.getX2(pos) - masterX) / scale + slaveX));
+        path.setY2(pos, (int)((path.getY2(pos) - masterY) / scale + slaveY));
     }
 }

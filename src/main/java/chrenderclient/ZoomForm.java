@@ -18,11 +18,11 @@ import java.util.logging.Logger;
  */
 public class ZoomForm extends javax.swing.JFrame {
     public static final long serialVersionUID = 42;
-    TPClient tp;
+    private TPClient tp;
+    private int coreSize;
 
     int xBorder = 17;
     int yBorder = 44;
-    Transformer transformer = new Transformer();
     public int originalX = -1;
     public int originalY = -1;
 
@@ -32,7 +32,7 @@ public class ZoomForm extends javax.swing.JFrame {
     public int minPriority = 0;
     boolean justDragged = false;
 
-    Rectangle2D.Double view = new Rectangle2D.Double();
+
     Rectangle2D.Double extendedRange = new Rectangle2D.Double();
 
     double extendFactor = 5;
@@ -54,6 +54,7 @@ public class ZoomForm extends javax.swing.JFrame {
         priorityLabel.setText("20");
         prioritySlider.setValue(20);
         setView();
+        coreSize = 400;
     }
 
 
@@ -263,7 +264,13 @@ public class ZoomForm extends javax.swing.JFrame {
 
     private void LoadGraphItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_LoadGraphItemActionPerformed
         System.out.println("clicked");
-        extractGraph(view);
+        extractGraph(zoomPanel.view);
+        try {
+            zoomPanel.core = tp.getCore(coreSize);
+        } catch (IOException e) {
+            // TODO do something useful
+            e.printStackTrace();
+        }
     }//GEN-LAST:event_LoadGraphItemActionPerformed
 
     private void setView() {
@@ -271,7 +278,7 @@ public class ZoomForm extends javax.swing.JFrame {
         int y = 49;
         width = (int) (zoomPanel.getWidth() * 50.0);
         height = (int) (zoomPanel.getHeight() * 50.0);
-        view = new Rectangle2D.Double(x, y, width, height);
+        zoomPanel.view = new Rectangle2D.Double(x, y, width, height);
     }
 
     private void zoomPanelMousePressed(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_zoomPanelMousePressed
@@ -285,7 +292,7 @@ public class ZoomForm extends javax.swing.JFrame {
             return;
         int dx = evt.getX() - originalX;
         int dy = evt.getY() - originalY;
-        double factor = view.getWidth() / zoomPanel.area.width;
+        double factor = zoomPanel.view.getWidth() / zoomPanel.area.width;
         if (dx == 0 && dy == 0 && justDragged == false) {
 //            if (zoomPanel.clickedOnRectangleSelection(originalX, originalY)) {
 //                zoomPanel.localZoomRect = null;
@@ -323,9 +330,9 @@ public class ZoomForm extends javax.swing.JFrame {
         dy = (int) (dy * factor);
         System.out.println("deltas: " + dx + ", " + dy);
 
-        view.x -= dx;
-        view.y -= dy;
-        extractGraph(view);
+        zoomPanel.view.x -= dx;
+        zoomPanel.view.y -= dy;
+        extractGraph(zoomPanel.view);
     }//GEN-LAST:event_zoomPanelMouseReleased
 
     private void zoomPanelMouseWheelMoved(java.awt.event.MouseWheelEvent evt) {//GEN-FIRST:event_zoomPanelMouseWheelMoved
@@ -334,24 +341,24 @@ public class ZoomForm extends javax.swing.JFrame {
         double x = evt.getX() - xBorder;
         double y = evt.getY() - yBorder;
         System.out.println("pos: " + x + ", " + y);
-        double factor = view.getWidth() / zoomPanel.area.width;
+        double factor = zoomPanel.view.getWidth() / zoomPanel.area.width;
         x = x * factor;
         y = y * factor;
         if (notches > 0) {
-            view.x -= (changeFactor - 1) * x;
-            view.y -= (changeFactor - 1) * y;
-            view.width *= changeFactor;
-            view.height *= changeFactor;
+            zoomPanel.view.x -= (changeFactor - 1) * x;
+            zoomPanel.view.y -= (changeFactor - 1) * y;
+            zoomPanel.view.width *= changeFactor;
+            zoomPanel.view.height *= changeFactor;
         } else {
 
-            if (view.width > 100 && view.height > 100) {
-                view.x += x * (1 - 1.0 / changeFactor);
-                view.y += y * (1 - 1.0 / changeFactor);
-                view.width = view.width / changeFactor;
-                view.height = view.height / changeFactor;
+            if (zoomPanel.view.width > 100 && zoomPanel.view.height > 100) {
+                zoomPanel.view.x += x * (1 - 1.0 / changeFactor);
+                zoomPanel.view.y += y * (1 - 1.0 / changeFactor);
+                zoomPanel.view.width = zoomPanel.view.width / changeFactor;
+                zoomPanel.view.height = zoomPanel.view.height / changeFactor;
             }
         }
-        extractGraph(view);
+        extractGraph(zoomPanel.view);
     }//GEN-LAST:event_zoomPanelMouseWheelMoved
 
     public String save() {
@@ -371,7 +378,7 @@ public class ZoomForm extends javax.swing.JFrame {
         try {
             String name = save();
             if ("".equals(name))
-                name = view.width / 1000.0 + "x" + view.height / 1000.0 + "_P" + minPriority + ".png";
+                name = zoomPanel.view.width / 1000.0 + "x" + zoomPanel.view.height / 1000.0 + "_P" + minPriority + ".png";
             zoomPanel.saveImage(name);
         } catch (IOException ex) {
             Logger.getLogger(ZoomForm.class.getName()).log(Level.SEVERE, null, ex);
@@ -384,7 +391,7 @@ public class ZoomForm extends javax.swing.JFrame {
         minPriority = slider.getValue();
         System.out.println("MIN P " + minPriority);
         priorityLabel.setText("" + minPriority);
-        extractGraph(view);
+        extractGraph(zoomPanel.view);
     }//GEN-LAST:event_prioritySliderStateChanged
 
     private void ClearMarkerMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ClearMarkerMenuItemActionPerformed
@@ -434,7 +441,7 @@ public class ZoomForm extends javax.swing.JFrame {
 
 
     public void extractGraph(Rectangle2D.Double range) {
-        double factor = view.getWidth() / zoomPanel.area.width;
+        double factor = zoomPanel.view.getWidth() / zoomPanel.area.width;
         extendedRange.x = range.x - (extendFactor - 1) / 2 * range.width;
         extendedRange.y = range.y - (extendFactor - 1) / 2 * range.height;
         extendedRange.width = extendFactor * range.width;
@@ -444,9 +451,8 @@ public class ZoomForm extends javax.swing.JFrame {
 
             //ids = prioDings.getNodeSelection(extendedRange, minPriority);
             try {
-                System.err.println("Requesting " + view);
-                zoomPanel.priores = tp.BBPrioRequest(view, minPriority);
-                transformer.transformToScreenSize(view, zoomPanel.area, zoomPanel.priores);
+                System.err.println("Requesting " + zoomPanel.view);
+                zoomPanel.priores = tp.bbBundleRequest(zoomPanel.view, minPriority);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -454,15 +460,14 @@ public class ZoomForm extends javax.swing.JFrame {
             //System.out.println("PST:" + (time2 - time) + " with " + ids.size());
         } else {
             Rectangle2D.Double local = new Rectangle2D.Double();
-            local.x = (int) (view.x + (zoomPanel.localZoomRect.x - xBorder) * factor);
-            local.y = (int) (view.y + (zoomPanel.localZoomRect.y - yBorder) * factor);
+            local.x = (int) (zoomPanel.view.x + (zoomPanel.localZoomRect.x - xBorder) * factor);
+            local.y = (int) (zoomPanel.view.y + (zoomPanel.localZoomRect.y - yBorder) * factor);
             local.width = (int) (zoomPanel.localZoomRect.width * factor);
             local.height = (int) (zoomPanel.localZoomRect.height * factor);
             System.out.println(local);
             try {
-                System.err.println("Requesting local " + view);
-                zoomPanel.priores = tp.BBPrioRequest(view, minPriority);
-                transformer.transformToScreenSize(view, zoomPanel.area, zoomPanel.priores);
+                System.err.println("Requesting local " + zoomPanel.view);
+                zoomPanel.priores = tp.bbBundleRequest(zoomPanel.view, minPriority);
             } catch (IOException e) {
                 e.printStackTrace();
             }

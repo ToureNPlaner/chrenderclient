@@ -1,5 +1,7 @@
 package chrenderclient;
 
+import chrenderclient.clientgraph.CoreGraph;
+import chrenderclient.clientgraph.PrioResult;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -20,20 +22,63 @@ public class TPClient {
     private CloseableHttpClient httpClient;
     private String uri;
 
+    private CoreGraph core;
+
     public TPClient(String uri) {
         httpClient = HttpClients.createDefault();
         this.uri = uri;
+        this.core = null;
     }
 
+    public CoreGraph getCore(int coreSize) throws IOException{
+        // In the future we need to check that the core matches the graph
+        // on the server if we store cores for longer
+        if (core != null && core.getNodeCount() == coreSize) {
+            return core;
+        }
 
-    public PrioResult BBPrioRequest(Rectangle2D.Double range, int minPrio) throws IOException {
+        core = coreRequest(coreSize);
+
+        return core;
+    }
+
+    private CoreGraph coreRequest(int nodeCount) throws IOException{
+        CoreGraph res = null;
+        HttpPost httpPost = new HttpPost(this.uri + "/algdrawcore");
+        String bS = "{\"nodeCount\":" +nodeCount+"}";
+        System.err.println(bS);
+        byte[] b = bS.getBytes("UTF-8");
+        HttpEntity body = new ByteArrayEntity(b, ContentType.APPLICATION_JSON);
+        httpPost.setEntity(body);
+        CloseableHttpResponse response1 = httpClient.execute(httpPost);
+        // The underlying HTTP connection is still held by the response object
+        // to allow the response content to be streamed directly from the network socket.
+        // In order to ensure correct deallocation of system resources
+        // the user MUST call CloseableHttpResponse#close() from a finally clause.
+        // Please note that if response content is not fully consumed the underlying
+        // connection cannot be safely re-used and will be shut down and discarded
+        // by the connection manager.
+        try {
+            System.out.println(response1.getStatusLine());
+            HttpEntity resEntity = response1.getEntity();
+            res = CoreGraph.readJSON(new ObjectMapper(), resEntity.getContent());
+            // do something useful with the response body
+            // and ensure it is fully consumed
+            EntityUtils.consume(resEntity);
+        } finally {
+            response1.close();
+        }
+        return res;
+    }
+
+    public PrioResult bbBundleRequest(Rectangle2D.Double range, int minPrio) throws IOException {
         PrioResult res = null;
         HttpPost httpPost = new HttpPost(this.uri + "/algbbbundle");
         String bS = "{\"bbox\":" +
                 "{\"x\":" + range.getX() + ",\"y\":" + range.getY() +
                 ",\"width\":" + range.getWidth() + ",\"height\":" + range.getHeight() + "}," +
                 "\"nodeCount\":1000,\"mode\":\"exact\",\"level\":"+minPrio+",\"minLen\":2,\"maxLen\":40,\"maxRatio\":0.01, " +
-                "\"coreSize\" : 0}";
+                "\"coreSize\" : "+((core != null)?core.getNodeCount():0)+"}";
         System.err.println(bS);
         byte[] b = bS.getBytes("UTF-8");
         HttpEntity body = new ByteArrayEntity(b, ContentType.APPLICATION_JSON);
