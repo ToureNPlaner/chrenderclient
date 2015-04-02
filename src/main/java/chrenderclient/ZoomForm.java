@@ -4,14 +4,7 @@
  */
 package chrenderclient;
 
-import javax.swing.*;
 import java.awt.*;
-import java.awt.geom.Rectangle2D;
-import java.io.File;
-import java.io.IOException;
-import java.util.Random;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * @author storandt, schnelle
@@ -26,17 +19,16 @@ public class ZoomForm extends javax.swing.JFrame {
     public int originalX = -1;
     public int originalY = -1;
 
-    public int width = 0;
-    public int height = 0;
 
     public int minPriority = 0;
     boolean justDragged = false;
 
+    public int width = 0;
+    public int height = 0;
 
-    Rectangle2D.Double extendedRange = new Rectangle2D.Double();
 
-    double extendFactor = 5;
-    double changeFactor = 1.8;
+
+
 
     /**
      * Creates new form zoomForm
@@ -44,17 +36,14 @@ public class ZoomForm extends javax.swing.JFrame {
      * @param tp
      */
     public ZoomForm(TPClient tp) {
+        coreSize = 400;
         this.tp = tp;
         initComponents();
         Dimension dim = new Dimension(1900, 1000);
         this.setPreferredSize(dim);
         //this.resize(new Dimension(400, 660));
-        zoomPanel.setPreferredSize(new Dimension(1800, 900));
-        zoomPanel.area = new Rectangle2D.Double(0, 0, 1800, 900);
         priorityLabel.setText("20");
         prioritySlider.setValue(20);
-        setView();
-        coreSize = 400;
     }
 
 
@@ -68,7 +57,7 @@ public class ZoomForm extends javax.swing.JFrame {
     private void initComponents() {
 
         prioritySlider = new javax.swing.JSlider();
-        zoomPanel = new ZoomPanel();
+        zoomPanel = new ZoomPanel(tp, coreSize);
         priorityLabel = new javax.swing.JLabel();
         fixedMinPrioLabel = new javax.swing.JLabel();
         MenuBar = new javax.swing.JMenuBar();
@@ -96,38 +85,12 @@ public class ZoomForm extends javax.swing.JFrame {
         prioritySlider.setValue(0);
         prioritySlider.addChangeListener(new javax.swing.event.ChangeListener() {
             public void stateChanged(javax.swing.event.ChangeEvent evt) {
-                prioritySliderStateChanged(evt);
+                zoomPanel.prioritySliderStateChanged(evt);
             }
         });
 
         zoomPanel.setBackground(java.awt.Color.white);
-        zoomPanel.addMouseWheelListener(new java.awt.event.MouseWheelListener() {
-            public void mouseWheelMoved(java.awt.event.MouseWheelEvent evt) {
-                zoomPanelMouseWheelMoved(evt);
-            }
-        });
-        zoomPanel.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mousePressed(java.awt.event.MouseEvent evt) {
-                zoomPanelMousePressed(evt);
-            }
 
-            public void mouseReleased(java.awt.event.MouseEvent evt) {
-                zoomPanelMouseReleased(evt);
-            }
-
-            public void mouseExited(java.awt.event.MouseEvent evt) {
-                zoomPanelMouseExited(evt);
-            }
-
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
-                zoomPanelMouseEntered(evt);
-            }
-        });
-        zoomPanel.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
-            public void mouseDragged(java.awt.event.MouseEvent evt) {
-                zoomPanelMouseDragged(evt);
-            }
-        });
 
         javax.swing.GroupLayout zoomPanelLayout = new javax.swing.GroupLayout(zoomPanel);
         zoomPanel.setLayout(zoomPanelLayout);
@@ -163,7 +126,7 @@ public class ZoomForm extends javax.swing.JFrame {
         SaveImageItem.setText("Save As PNG");
         SaveImageItem.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                SaveImageItemActionPerformed(evt);
+                zoomPanel.SaveImage(evt);
             }
         });
         ExportMenu.add(SaveImageItem);
@@ -250,149 +213,17 @@ public class ZoomForm extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
-    private boolean isInsideEventArea(int x, int y) {
-        return zoomPanel.area.contains(new Point(x, y));
-    }
-
-    private void zoomPanelMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_zoomPanelMouseEntered
-        setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-    }//GEN-LAST:event_zoomPanelMouseEntered
-
-    private void zoomPanelMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_zoomPanelMouseExited
-        setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
-    }//GEN-LAST:event_zoomPanelMouseExited
 
     private void LoadGraphItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_LoadGraphItemActionPerformed
         System.out.println("clicked");
-        extractGraph(zoomPanel.view);
-        try {
-            zoomPanel.core = tp.getCore(coreSize);
-        } catch (IOException e) {
-            // TODO do something useful
-            e.printStackTrace();
-        }
+        zoomPanel.loadCore();
     }//GEN-LAST:event_LoadGraphItemActionPerformed
 
-    private void setView() {
-        int x = 6;
-        int y = 49;
-        width = (int) (zoomPanel.getWidth() * 50.0);
-        height = (int) (zoomPanel.getHeight() * 50.0);
-        zoomPanel.view = new Rectangle2D.Double(x, y, width, height);
-    }
 
-    private void zoomPanelMousePressed(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_zoomPanelMousePressed
-        originalX = evt.getX();
-        originalY = evt.getY();
-        System.out.println("new x y: " + originalX + ", " + originalY);
-    }//GEN-LAST:event_zoomPanelMousePressed
 
-    private void zoomPanelMouseReleased(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_zoomPanelMouseReleased
-        if (!isInsideEventArea(evt.getX(), evt.getY()))
-            return;
-        int dx = evt.getX() - originalX;
-        int dy = evt.getY() - originalY;
-        double factor = zoomPanel.view.getWidth() / zoomPanel.area.width;
-        if (dx == 0 && dy == 0 && justDragged == false) {
-//            if (zoomPanel.clickedOnRectangleSelection(originalX, originalY)) {
-//                zoomPanel.localZoomRect = null;
-//                if (isCursorTouchpen) {
-//                    setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-//                }
-//                else
-//                    setCursor(touchpen);
-//                isCursorTouchpen = !isCursorTouchpen;
-//                return;
-//            }
 
-			/*int id = prioDings.getNextNode((int) (view.x + (originalX - xBorder) * factor), (int) (view.y + (originalY - yBorder) * factor), minPriority);
-            if (id == -1)
-				return;
-			Point point = transformer.transformToAbsolutePoint(graph.nodes, id);
-			poiIDs.add(id);
-			transformer.transformToScreenSize(zoomPanel.area, view, point);
 
-			zoomPanel.addPaintPoint(point);
-			System.out.println(point);
-			*/
-            //zoomPanel.repaint();
-            return;
-        }
-        justDragged = false;
-//        if (!isCursorTouchpen) {
-//            zoomPanel.localZoomRect = null;
-//            System.out.println("add rectangle " + originalX + " " + originalY + " " + dx + " " + dy);
-//            zoomPanel.addRectangle(new Rectangle(originalX, originalY, dx, dy));
-//            repaint();
-//            return;
-//        }
-        dx = (int) (dx * factor);
-        dy = (int) (dy * factor);
-        System.out.println("deltas: " + dx + ", " + dy);
 
-        zoomPanel.view.x -= dx;
-        zoomPanel.view.y -= dy;
-        extractGraph(zoomPanel.view);
-    }//GEN-LAST:event_zoomPanelMouseReleased
-
-    private void zoomPanelMouseWheelMoved(java.awt.event.MouseWheelEvent evt) {//GEN-FIRST:event_zoomPanelMouseWheelMoved
-        int notches = evt.getWheelRotation();
-        System.out.println("notch: " + notches);
-        double x = evt.getX() - xBorder;
-        double y = evt.getY() - yBorder;
-        System.out.println("pos: " + x + ", " + y);
-        double factor = zoomPanel.view.getWidth() / zoomPanel.area.width;
-        x = x * factor;
-        y = y * factor;
-        if (notches > 0) {
-            zoomPanel.view.x -= (changeFactor - 1) * x;
-            zoomPanel.view.y -= (changeFactor - 1) * y;
-            zoomPanel.view.width *= changeFactor;
-            zoomPanel.view.height *= changeFactor;
-        } else {
-
-            if (zoomPanel.view.width > 100 && zoomPanel.view.height > 100) {
-                zoomPanel.view.x += x * (1 - 1.0 / changeFactor);
-                zoomPanel.view.y += y * (1 - 1.0 / changeFactor);
-                zoomPanel.view.width = zoomPanel.view.width / changeFactor;
-                zoomPanel.view.height = zoomPanel.view.height / changeFactor;
-            }
-        }
-        extractGraph(zoomPanel.view);
-    }//GEN-LAST:event_zoomPanelMouseWheelMoved
-
-    public String save() {
-        JFileChooser fc = new JFileChooser();
-        int result = fc.showSaveDialog(this);
-        if (result == JFileChooser.CANCEL_OPTION) return "";
-        try {
-            File file = fc.getSelectedFile();
-            return file.toString();
-
-        } catch (Exception e) {
-            return "";
-        }
-    }
-
-    private void SaveImageItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_SaveImageItemActionPerformed
-        try {
-            String name = save();
-            if ("".equals(name))
-                name = zoomPanel.view.width / 1000.0 + "x" + zoomPanel.view.height / 1000.0 + "_P" + minPriority + ".png";
-            zoomPanel.saveImage(name);
-        } catch (IOException ex) {
-            Logger.getLogger(ZoomForm.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }//GEN-LAST:event_SaveImageItemActionPerformed
-
-    private void prioritySliderStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_prioritySliderStateChanged
-        JSlider slider = (JSlider) evt.getSource();
-
-        minPriority = slider.getValue();
-        System.out.println("MIN P " + minPriority);
-        priorityLabel.setText("" + minPriority);
-        extractGraph(zoomPanel.view);
-    }//GEN-LAST:event_prioritySliderStateChanged
 
     private void ClearMarkerMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ClearMarkerMenuItemActionPerformed
         repaint();
@@ -408,28 +239,6 @@ public class ZoomForm extends javax.swing.JFrame {
 
 
 
-    private void zoomPanelMouseDragged(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_zoomPanelMouseDragged
-
-        zoomPanelMouseReleased(evt);
-        originalX = evt.getX();
-        originalY = evt.getY();
-
-        justDragged = true;
-    }//GEN-LAST:event_zoomPanelMouseDragged
-
-    private void swapElements(int a, int b, int[] data1, int[] data2) {
-        int tmp1 = data1[a], tmp2 = data2[a];
-        data1[a] = data1[b];
-        data2[a] = data2[b];
-
-        data1[b] = tmp1;
-        data2[b] = tmp2;
-    }
-
-    Random generator = new Random();
-
-
-
     private void ShowPriorityNodesMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ShowPriorityNodesMenuItemActionPerformed
         zoomPanel.showPriorityNodes = !zoomPanel.showPriorityNodes;
         repaint();
@@ -439,56 +248,6 @@ public class ZoomForm extends javax.swing.JFrame {
 
     }//GEN-LAST:event_GridTestMenuItemActionPerformed
 
-
-    public void extractGraph(Rectangle2D.Double range) {
-        double factor = zoomPanel.view.getWidth() / zoomPanel.area.width;
-        extendedRange.x = range.x - (extendFactor - 1) / 2 * range.width;
-        extendedRange.y = range.y - (extendFactor - 1) / 2 * range.height;
-        extendedRange.width = extendFactor * range.width;
-        extendedRange.height = extendFactor * range.height;
-        if (zoomPanel.localZoomRect == null) {
-            long time = System.currentTimeMillis();
-
-            //ids = prioDings.getNodeSelection(extendedRange, minPriority);
-            try {
-                System.err.println("Requesting " + zoomPanel.view);
-                zoomPanel.priores = tp.bbBundleRequest(zoomPanel.view, minPriority);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            long time2 = System.currentTimeMillis();
-            //System.out.println("PST:" + (time2 - time) + " with " + ids.size());
-        } else {
-            Rectangle2D.Double local = new Rectangle2D.Double();
-            local.x = (int) (zoomPanel.view.x + (zoomPanel.localZoomRect.x - xBorder) * factor);
-            local.y = (int) (zoomPanel.view.y + (zoomPanel.localZoomRect.y - yBorder) * factor);
-            local.width = (int) (zoomPanel.localZoomRect.width * factor);
-            local.height = (int) (zoomPanel.localZoomRect.height * factor);
-            System.out.println(local);
-            try {
-                System.err.println("Requesting local " + zoomPanel.view);
-                zoomPanel.priores = tp.bbBundleRequest(zoomPanel.view, minPriority);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-//            ids = prioGrid.getNodeSelection(local, minPriority/2, minPriority);
-        }
-
-        //System.out.println("IDs " + ids.size())
-        //transformer.transformToAbsolutePoints(graph.nodes, ids, zoomPanel.priorityPoints);
-        //transformer.transformToScreenSize(zoomPanel.area, range, zoomPanel.priorityPoints);
-//        System.out.println("SCALE " + transformer.getScaleFactor(zoomPanel.area, range));
-        // TODO: Support minLen, maxLen, maxRatio properly, now just unpack everything
-        //edEx.getCHPriorityEdges(ids, zoomPanel.lines, range, -1.0, -1.0, -1.0, minPriority);
-        //System.out.println("lines: " + zoomPanel.lines.size());
-        //transformer.transformToAbsolutePoints(graph.nodes, ids, zoomPanel.points);
-        //System.out.println("points " + zoomPanel.points.size());
-
-        //	filterPOIs();
-        //	transformer.transformToScreenSize(zoomPanel.area, range, zoomPanel.paintPoints);
-        //	filterPaths();
-        repaint();
-    }
 
     /**
      * @param args the command line arguments
