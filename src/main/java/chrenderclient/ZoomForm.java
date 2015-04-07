@@ -36,7 +36,7 @@ public class ZoomForm extends javax.swing.JFrame {
      * @param tp
      */
     public ZoomForm(TPClient tp) {
-        coreSize = 400;
+        coreSize = 1000;
         this.tp = tp;
         initComponents();
         Dimension dim = new Dimension(1900, 1000);

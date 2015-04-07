@@ -30,7 +30,6 @@ public class ZoomPanel extends JPanel {
     private Rectangle localZoomRect = null;
     private PrioResult priores;
     private CoreGraph core;
-    private Transformer trans = new Transformer();
     private Rectangle2D.Double bbox = new Rectangle2D.Double();
     private TPClient tp;
 
@@ -119,11 +118,12 @@ public class ZoomPanel extends JPanel {
         g2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                 RenderingHints.VALUE_ANTIALIAS_ON);
         // First paint the core
-        if(core == null) {
+        if (core == null) {
             System.err.println("core is null");
             return;
         }
-        System.err.println("Got " + core.getEdgeCount() + " core edges for " + core.getNodeCount() + " nodes");
+        final Transformer trans = new Transformer(bbox, area);
+        System.err.println("Drawing " + core.getEdgeCount() + " core edges for " + core.getNodeCount() + " nodes");
         for (int i = 0; i < core.getEdgeCount(); i++) {
             RefinedPath path = core.getRefinedPath(i);
             for (int pathElement = 0; pathElement < path.size(); pathElement++) {
@@ -138,17 +138,16 @@ public class ZoomPanel extends JPanel {
                     g2D.setStroke(mediumStreetStroke);
                 }
 
-                g2D.drawLine(trans.transformX(path.getX1(pathElement), bbox, area), trans.transformY(path.getY1(pathElement), bbox, area),
-                        trans.transformX(path.getX2(pathElement), bbox, area), trans.transformY(path.getY2(pathElement), bbox, area));
+                g2D.drawLine(trans.tX(path.getX1(pathElement)), trans.tY(path.getY1(pathElement)),
+                        trans.tX(path.getX2(pathElement)), trans.tY(path.getY2(pathElement)));
             }
         }
-        
+
         if (priores == null) {
             System.err.println("Priores is null");
             return;
         }
-        System.err.println("Got " + priores.edges.size() + " edges");
-        trans.transformToScreenSize(bbox, area, priores);
+        System.err.println("Drawing " + priores.edges.size() + " edges");
         for (int i = 0; i < priores.edges.size(); i++) {
             RefinedPath path = priores.edges.get(i).path;
             for (int pathElement = 0; pathElement < path.size(); pathElement++) {
@@ -163,7 +162,8 @@ public class ZoomPanel extends JPanel {
                     g2D.setStroke(mediumStreetStroke);
                 }
 
-                g2D.drawLine(path.getX1(pathElement), path.getY1(pathElement), path.getX2(pathElement), path.getY2(pathElement));
+                g2D.drawLine(trans.tX(path.getX1(pathElement)), trans.tY(path.getY1(pathElement)),
+                        trans.tX(path.getX2(pathElement)), trans.tY(path.getY2(pathElement)));
             }
         }
     }
@@ -291,19 +291,22 @@ public class ZoomPanel extends JPanel {
     }
 
     private void zoomPanelMousePressed(java.awt.event.MouseEvent evt) {
+        System.out.println("Mouse pressed");
         originalX = evt.getX();
         originalY = evt.getY();
         System.out.println("new x y: " + originalX + ", " + originalY);
     }
 
     private void zoomPanelMouseReleased(java.awt.event.MouseEvent evt) {
-        if (!area.contains(new Point(evt.getX(), evt.getY()))){
+        System.out.println("Mouse released");
+        if (!area.contains(new Point(evt.getX(), evt.getY()))) {
             return;
         }
         int dx = evt.getX() - originalX;
         int dy = evt.getY() - originalY;
         double factor = bbox.getWidth() / area.width;
-        if (dx == 0 && dy == 0 && justDragged == false) {
+        extractGraph(bbox);
+        if (dx == 0 && dy == 0 && !justDragged) {
             return;
         }
         justDragged = false;
@@ -313,11 +316,11 @@ public class ZoomPanel extends JPanel {
 
         bbox.x -= dx;
         bbox.y -= dy;
-        extractGraph(bbox);
         repaint();
     }
 
     private void zoomPanelMouseWheelMoved(java.awt.event.MouseWheelEvent evt) {
+        System.out.println("Mouse wheel moved");
         int notches = evt.getWheelRotation();
         System.out.println("notch: " + notches);
         double x = evt.getX() - xBorder;
@@ -378,10 +381,25 @@ public class ZoomPanel extends JPanel {
     }
 
     private void zoomPanelMouseDragged(java.awt.event.MouseEvent evt) {
-        zoomPanelMouseReleased(evt);
+
+        if (!area.contains(new Point(evt.getX(), evt.getY()))) {
+            return;
+        }
+        System.out.println("Mouse dragged");
+        int dx = evt.getX() - originalX;
+        int dy = evt.getY() - originalY;
+        if (dx == 0 && dy == 0) {
+            return;
+        }
+        double factor = bbox.getWidth() / area.width;
+        dx = (int) (dx * factor);
+        dy = (int) (dy * factor);
+        System.out.println("deltas: " + dx + ", " + dy);
+
+        bbox.x -= dx;
+        bbox.y -= dy;
         originalX = evt.getX();
         originalY = evt.getY();
-
         justDragged = true;
         repaint();
     }
