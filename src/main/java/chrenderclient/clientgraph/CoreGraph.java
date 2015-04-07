@@ -1,9 +1,10 @@
 package chrenderclient.clientgraph;
 
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.JsonParser;
-import org.codehaus.jackson.JsonToken;
-import org.codehaus.jackson.map.ObjectMapper;
+
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -101,7 +102,7 @@ public final class CoreGraph {
     }
 
     public static CoreGraph readJSON(ObjectMapper mapper, InputStream in) throws IOException{
-        final JsonParser jp = mapper.getJsonFactory().createJsonParser(in);
+        final JsonParser jp = mapper.getFactory().createParser(in);
         jp.setCodec(mapper);
 
         if (jp.nextToken() != JsonToken.START_OBJECT) {

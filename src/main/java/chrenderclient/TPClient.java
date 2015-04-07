@@ -2,6 +2,8 @@ package chrenderclient;
 
 import chrenderclient.clientgraph.CoreGraph;
 import chrenderclient.clientgraph.PrioResult;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.smile.SmileFactory;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -10,7 +12,6 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
-import org.codehaus.jackson.map.ObjectMapper;
 
 import java.awt.geom.Rectangle2D;
 import java.io.BufferedInputStream;
@@ -22,13 +23,15 @@ import java.io.IOException;
 public class TPClient {
     private CloseableHttpClient httpClient;
     private String uri;
+    private ObjectMapper mapper;
 
     private CoreGraph core;
 
     public TPClient(String uri) {
         httpClient = HttpClients.createDefault();
         this.uri = uri;
-        this.core = null;
+        this.core = null;;
+        this.mapper = new ObjectMapper(new SmileFactory());
     }
 
     public CoreGraph getCore(int coreSize) throws IOException{
@@ -46,6 +49,7 @@ public class TPClient {
     private CoreGraph coreRequest(int nodeCount) throws IOException{
         CoreGraph res = null;
         HttpPost httpPost = new HttpPost(this.uri + "/algdrawcore");
+        httpPost.addHeader("Accept", "application/x-jackson-smile");
         String bS = "{\"nodeCount\":" +nodeCount+"}";
         System.err.println(bS);
         byte[] b = bS.getBytes("UTF-8");
@@ -62,7 +66,7 @@ public class TPClient {
         try {
             System.out.println(response1.getStatusLine());
             HttpEntity resEntity = response1.getEntity();
-            res = CoreGraph.readJSON(new ObjectMapper(), resEntity.getContent());
+            res = CoreGraph.readJSON(mapper, resEntity.getContent());
             // do something useful with the response body
             // and ensure it is fully consumed
             EntityUtils.consume(resEntity);
@@ -75,6 +79,7 @@ public class TPClient {
     public PrioResult bbBundleRequest(Rectangle2D.Double range, int minPrio) throws IOException {
         PrioResult res = null;
         HttpPost httpPost = new HttpPost(this.uri + "/algbbbundle");
+        httpPost.addHeader("Accept", "application/x-jackson-smile");
         String bS = "{\"bbox\":" +
                 "{\"x\":" + range.getX() + ",\"y\":" + range.getY() +
                 ",\"width\":" + range.getWidth() + ",\"height\":" + range.getHeight() + "}," +
@@ -96,7 +101,7 @@ public class TPClient {
             System.out.println(response1.getStatusLine());
             HttpEntity resEntity = response1.getEntity();
             long time0 = System.nanoTime();
-            res = PrioResult.readResultData(new ObjectMapper(), new BufferedInputStream(resEntity.getContent()));
+            res = PrioResult.readResultData(mapper, new BufferedInputStream(resEntity.getContent()));
             long time1 = System.nanoTime();
             System.out.println("Reading took "+(time1-time0)/1000000.0+" ms");
             // do something useful with the response body
