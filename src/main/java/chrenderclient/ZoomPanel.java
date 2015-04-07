@@ -27,7 +27,6 @@ public class ZoomPanel extends JPanel {
     public static final long serialVersionUID = 1;
     private Rectangle2D.Double area = new Rectangle2D.Double(17, 44, 302, 469);
 
-    private Rectangle localZoomRect = null;
     private PrioResult priores;
     private CoreGraph core;
     private Rectangle2D.Double bbox = new Rectangle2D.Double();
@@ -45,7 +44,6 @@ public class ZoomPanel extends JPanel {
     private boolean justDragged = false;
 
     public boolean showPriorityNodes = false;
-    public boolean paintZoomRect = false;
     private double extendFactor = 5;
     private double changeFactor = 1.8;
 
@@ -106,24 +104,21 @@ public class ZoomPanel extends JPanel {
 
         g.fillRect((int) area.getX(), (int) area.getY(), (int) area.getWidth(), (int) area.getHeight());
         paintMap(g);
-        paintRectangleSelectionTool(g);
-        if (paintZoomRect) {
-            if (localZoomRect != null)
-                g.drawRect(localZoomRect.x, localZoomRect.y, localZoomRect.width, localZoomRect.height);
-        }
     }
 
     public void paintMap(Graphics g) {
         Graphics2D g2D = (Graphics2D) g;
-        g2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                RenderingHints.VALUE_ANTIALIAS_ON);
+        // TODO with Antialiasing drawing is awfully slow
+        //g2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+        //        RenderingHints.VALUE_ANTIALIAS_ON);
         // First paint the core
         if (core == null) {
             System.err.println("core is null");
             return;
         }
         final Transformer trans = new Transformer(bbox, area);
-        System.err.println("Drawing " + core.getEdgeCount() + " core edges for " + core.getNodeCount() + " nodes");
+        int coreLines = 0;
+        long time0 = System.nanoTime();
         for (int i = 0; i < core.getEdgeCount(); i++) {
             RefinedPath path = core.getRefinedPath(i);
             for (int pathElement = 0; pathElement < path.size(); pathElement++) {
@@ -137,17 +132,20 @@ public class ZoomPanel extends JPanel {
                     g2D.setColor(Color.BLUE);
                     g2D.setStroke(mediumStreetStroke);
                 }
-
+                coreLines++;
                 g2D.drawLine(trans.tX(path.getX1(pathElement)), trans.tY(path.getY1(pathElement)),
                         trans.tX(path.getX2(pathElement)), trans.tY(path.getY2(pathElement)));
             }
         }
+        long time1 = System.nanoTime();
+        double coreTime = (time1-time0)/1000000.0;
 
         if (priores == null) {
             System.err.println("Priores is null");
             return;
         }
-        System.err.println("Drawing " + priores.edges.size() + " edges");
+        time0 = System.nanoTime();
+        int prioresLines = 0;
         for (int i = 0; i < priores.edges.size(); i++) {
             RefinedPath path = priores.edges.get(i).path;
             for (int pathElement = 0; pathElement < path.size(); pathElement++) {
@@ -161,11 +159,15 @@ public class ZoomPanel extends JPanel {
                     g2D.setColor(Color.WHITE);
                     g2D.setStroke(mediumStreetStroke);
                 }
-
+                prioresLines++;
                 g2D.drawLine(trans.tX(path.getX1(pathElement)), trans.tY(path.getY1(pathElement)),
                         trans.tX(path.getX2(pathElement)), trans.tY(path.getY2(pathElement)));
             }
         }
+        time1 = System.nanoTime();
+        double prioresTime = (time1-time0)/1000000.0;
+        System.out.println("Drew "+core.getEdgeCount()+" coreEdges with "+coreLines+" lines in "+coreTime+" ms and\n"+
+                            priores.edges.size()+" PrioRes edges with "+prioresLines+" lines in "+prioresTime+" ms");
     }
 
     private void paintPoint(Point point, Graphics g) {
@@ -205,11 +207,6 @@ public class ZoomPanel extends JPanel {
         return true;
     }
 
-    void addRectangle(Rectangle rectangle) {
-        localZoomRect = rectangle;
-        paintZoomRect = true;
-    }
-
     private void drawArrow(Graphics2D g2D, int x, int y, int xx, int yy) {
         if (Math.sqrt((x - xx) * (x - xx) + (y - yy) * (y - yy)) < 20)
             return;
@@ -243,38 +240,22 @@ public class ZoomPanel extends JPanel {
     }
 
     private void extractGraph(Rectangle2D.Double range) {
+        long time = System.nanoTime();
         Rectangle2D.Double extendedRange = new Rectangle2D.Double();
-        double factor = bbox.getWidth() / area.width;
         extendedRange.x = range.x - (extendFactor - 1) / 2 * range.width;
         extendedRange.y = range.y - (extendFactor - 1) / 2 * range.height;
         extendedRange.width = extendFactor * range.width;
         extendedRange.height = extendFactor * range.height;
-        if (localZoomRect == null) {
-            long time = System.currentTimeMillis();
 
-            //ids = prioDings.getNodeSelection(extendedRange, minPriority);
-            try {
-                System.err.println("Requesting " + bbox);
-                priores = tp.bbBundleRequest(bbox, minPriority);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            long time2 = System.currentTimeMillis();
-            //System.out.println("PST:" + (time2 - time) + " with " + ids.size());
-        } else {
-            Rectangle2D.Double local = new Rectangle2D.Double();
-            local.x = (int) (bbox.x + (localZoomRect.x - xBorder) * factor);
-            local.y = (int) (bbox.y + (localZoomRect.y - yBorder) * factor);
-            local.width = (int) (localZoomRect.width * factor);
-            local.height = (int) (localZoomRect.height * factor);
-            System.out.println(local);
-            try {
-                System.err.println("Requesting local " + bbox);
-                priores = tp.bbBundleRequest(bbox, minPriority);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+        try {
+            System.err.println("Requesting " + extendedRange);
+            priores = tp.bbBundleRequest(extendedRange, minPriority);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+        long time2 = System.nanoTime();
+        System.out.println("extractGraph: " + (double) (time2 - time)/1000000.0+" ms");
+
     }
 
     public void loadCore() {

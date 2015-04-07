@@ -13,6 +13,7 @@ import org.apache.http.util.EntityUtils;
 import org.codehaus.jackson.map.ObjectMapper;
 
 import java.awt.geom.Rectangle2D;
+import java.io.BufferedInputStream;
 import java.io.IOException;
 
 /**
@@ -94,7 +95,10 @@ public class TPClient {
         try {
             System.out.println(response1.getStatusLine());
             HttpEntity resEntity = response1.getEntity();
-            res = PrioResult.readResultData(new ObjectMapper(), resEntity.getContent());
+            long time0 = System.nanoTime();
+            res = PrioResult.readResultData(new ObjectMapper(), new BufferedInputStream(resEntity.getContent()));
+            long time1 = System.nanoTime();
+            System.out.println("Reading took "+(time1-time0)/1000000.0+" ms");
             // do something useful with the response body
             // and ensure it is fully consumed
             EntityUtils.consume(resEntity);
