@@ -354,11 +354,13 @@ public class ZoomPanel extends JPanel {
 
     public void prioritySliderStateChanged(javax.swing.event.ChangeEvent evt) {
         JSlider slider = (JSlider) evt.getSource();
+        if (!slider.getValueIsAdjusting()) {
 
-        minPriority = slider.getValue();
-        System.out.println("MIN P " + minPriority);
-        extractGraph(bbox);
-        repaint();
+            minPriority = slider.getValue();
+            System.out.println("MIN P " + minPriority);
+            extractGraph(bbox);
+            repaint();
+        }
     }
 
     private void zoomPanelMouseDragged(java.awt.event.MouseEvent evt) {

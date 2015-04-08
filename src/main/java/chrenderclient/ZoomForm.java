@@ -56,7 +56,7 @@ public class ZoomForm extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        prioritySlider = new javax.swing.JSlider();
+
         zoomPanel = new ZoomPanel(tp, coreSize);
         priorityLabel = new javax.swing.JLabel();
         fixedMinPrioLabel = new javax.swing.JLabel();
@@ -79,10 +79,14 @@ public class ZoomForm extends javax.swing.JFrame {
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
-
-        prioritySlider.setMinorTickSpacing(5);
+        prioritySlider = new javax.swing.JSlider();
+        prioritySlider.setMinorTickSpacing(1);
+        prioritySlider.setMajorTickSpacing(5);
         prioritySlider.setPaintLabels(true);
-        prioritySlider.setValue(0);
+        prioritySlider.setMinimum(0);
+        prioritySlider.setMaximum(100);
+        prioritySlider.setSnapToTicks(false);
+        prioritySlider.setPaintTicks(true);
         prioritySlider.addChangeListener(new javax.swing.event.ChangeListener() {
             public void stateChanged(javax.swing.event.ChangeEvent evt) {
                 zoomPanel.prioritySliderStateChanged(evt);
