@@ -146,19 +146,38 @@ public class ZoomPanel extends JPanel {
         }
         time0 = System.nanoTime();
         int prioresLines = 0;
-        for (int i = 0; i < priores.edges.size(); i++) {
-            RefinedPath path = priores.edges.get(i).path;
+        for (int i = 0; i < priores.upEdges.size(); i++) {
+            RefinedPath path = priores.upEdges.get(i).path;
             for (int pathElement = 0; pathElement < path.size(); pathElement++) {
-                g2D.setColor(Color.LIGHT_GRAY);
-                g2D.setStroke(smallStreetStroke);
+                g2D.setColor(Color.YELLOW);
+                g2D.setStroke(mediumStreetStroke);
 
-                if (path.getType(pathElement) <= 2) {
+                /*if (path.getType(pathElement) <= 2) {
                     g2D.setColor(Color.YELLOW);
                     g2D.setStroke(largeStreetStroke);
                 } else if (path.getType(pathElement) <= 9) {
                     g2D.setColor(Color.WHITE);
                     g2D.setStroke(mediumStreetStroke);
-                }
+                }*/
+                prioresLines++;
+                g2D.drawLine(trans.tX(path.getX1(pathElement)), trans.tY(path.getY1(pathElement)),
+                        trans.tX(path.getX2(pathElement)), trans.tY(path.getY2(pathElement)));
+            }
+        }
+
+        for (int i = 0; i < priores.downEdges.size(); i++) {
+            RefinedPath path = priores.downEdges.get(i).path;
+            for (int pathElement = 0; pathElement < path.size(); pathElement++) {
+                g2D.setColor(Color.RED);
+                g2D.setStroke(mediumStreetStroke);
+
+                /*if (path.getType(pathElement) <= 2) {
+                    g2D.setColor(Color.YELLOW);
+                    g2D.setStroke(largeStreetStroke);
+                } else if (path.getType(pathElement) <= 9) {
+                    g2D.setColor(Color.WHITE);
+                    g2D.setStroke(mediumStreetStroke);
+                }*/
                 prioresLines++;
                 g2D.drawLine(trans.tX(path.getX1(pathElement)), trans.tY(path.getY1(pathElement)),
                         trans.tX(path.getX2(pathElement)), trans.tY(path.getY2(pathElement)));
@@ -167,7 +186,7 @@ public class ZoomPanel extends JPanel {
         time1 = System.nanoTime();
         double prioresTime = (time1-time0)/1000000.0;
         System.out.println("Drew "+core.getEdgeCount()+" coreEdges with "+coreLines+" lines in "+coreTime+" ms and\n"+
-                            priores.edges.size()+" PrioRes edges with "+prioresLines+" lines in "+prioresTime+" ms");
+                            priores.upEdges.size()+" PrioRes upEdges and "+priores.downEdges.size()+" downEdges with "+prioresLines+" lines in "+prioresTime+" ms");
     }
 
     private void paintPoint(Point point, Graphics g) {
