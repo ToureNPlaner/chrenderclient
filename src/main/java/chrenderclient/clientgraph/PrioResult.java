@@ -8,110 +8,99 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 
 public class PrioResult {
 
-    public final ArrayList<Edge> upEdges;
-    public final ArrayList<Edge> downEdges;
+    public final Edge[] upEdges;
+    public final Edge[] downEdges;
+    public final Node[] nodes;
+    public final int coreSize;
 
-    public PrioResult() {
-        upEdges = new ArrayList<Edge>();
-        downEdges = new ArrayList<Edge>();
+    public PrioResult(int nodeCount, int upEdgeCount, int downEdgeCount, int coreSize) {
+        nodes = new Node[nodeCount];
+        upEdges = new Edge[upEdgeCount];
+        downEdges = new Edge[downEdgeCount];
+        this.coreSize = coreSize;
     }
 
+
+    private static PrioResult readPrioResultHead(JsonParser jp, JsonToken token) throws IOException, JsonParseException {
+        String fieldName;
+        int nodeCount = -1;
+        int upEdgeCount = -1;
+        int downEdgeCount = -1;
+        int coreSize = 0;
+        RefinedPath path = new RefinedPath();
+        if (token != JsonToken.START_OBJECT) {
+            throw new JsonParseException("head is no object", jp.getCurrentLocation());
+        }
+        while (jp.nextToken() != JsonToken.END_OBJECT) {
+            fieldName = jp.getCurrentName();
+            token = jp.nextToken();
+            if ("nodeCount".equals(fieldName)) {
+                nodeCount = jp.getIntValue();
+            } else if ("upEdgeCount".equals(fieldName)) {
+                upEdgeCount = jp.getIntValue();
+            } else if ("downEdgeCount".equals(fieldName)) {
+                downEdgeCount = jp.getIntValue();
+            } else if ("coreSize".equals(fieldName)) {
+                coreSize = jp.getIntValue();
+            } else {
+                throw new JsonParseException("Unexpected token " + token, jp.getCurrentLocation());
+            }
+        }
+
+        if (nodeCount < 0 || upEdgeCount < 0) {
+            throw new JsonParseException("Head not complete", jp.getCurrentLocation());
+        }
+
+        return new PrioResult(nodeCount, upEdgeCount, downEdgeCount, coreSize);
+    }
+
+
     public static PrioResult readResultData(ObjectMapper mapper, InputStream in) throws IOException {
+
+        /*
+        Prio Result looks something like this:
+        [
+        {"nodeCount" : NUM, "upEdgeCount": NUM, "downEdgeCount" : NUM},
+        {
+        "upEdges" : ...,,
+        "downEdges" : ....
+        }
+        ]
+         */
 
         final JsonParser jp = mapper.getFactory().createParser(in);
         jp.setCodec(mapper);
 
         if (jp.nextToken() != JsonToken.START_OBJECT) {
-            throw new JsonParseException("Result contains no json object", jp.getCurrentLocation());
+            throw new JsonParseException("PrioResult contains no json object", jp.getCurrentLocation());
         }
 
-        String fieldname;
+        String fieldName;
         JsonToken token;
-        boolean finished = false;
-        PrioResult result = new PrioResult();
-        while (!finished) {
-            //move to next field or END_OBJECT/EOF
+        PrioResult prioResult = null;
+        while (true) {
+            //move to next element or END_OBJECT/EOF
             token = jp.nextToken();
             if (token == JsonToken.FIELD_NAME) {
-                fieldname = jp.getCurrentName();
+                fieldName = jp.getCurrentName();
                 token = jp.nextToken(); // move to value, or
                 // START_OBJECT/START_ARRAY
-                if ("upEdges".equals(fieldname)) {
-                    // Should be on START_ARRAY
-                    if (token != JsonToken.START_ARRAY) {
-                        throw new JsonParseException("edges is no array", jp.getCurrentLocation());
+                if ("head".equals(fieldName)) {
+                    prioResult = readPrioResultHead(jp, token);
+                } else if ("edges".equals(fieldName)) {
+                    if(prioResult == null) {
+                        throw new JsonParseException("Need to see head before edges", jp.getCurrentLocation());
                     }
-
-                    while ((token = jp.nextToken()) != JsonToken.END_ARRAY) {
-                        if (token != JsonToken.START_OBJECT) {
-                            throw new JsonParseException("edge is no object", jp.getCurrentLocation());
-                        }
-                        Edge edge = new Edge();
-                        while (jp.nextToken() != JsonToken.END_OBJECT) {
-                            fieldname = jp.getCurrentName();
-                            token = jp.nextToken();
-                            if ("src".equals(fieldname)) {
-                                edge.src = jp.getIntValue();
-                            } else if ("trgt".equals(fieldname)) {
-                                edge.trgt = jp.getIntValue();
-                            } else if ("cost".equals(fieldname)) {
-                                edge.cost = jp.getIntValue();
-                            } else if ("draw".equals(fieldname)) {
-                                // Should be on START_ARRAY
-                                if (token != JsonToken.START_ARRAY) {
-                                    throw new JsonParseException("draw is no array", jp.getCurrentLocation());
-                                }
-
-                                while (jp.nextToken() != JsonToken.END_ARRAY) {
-                                    // TODO Error checking i.e. for too few parameters would be kinda nice
-                                    edge.path.add(jp.getIntValue(), jp.nextIntValue(0), jp.nextIntValue(0), jp.nextIntValue(0), jp.nextIntValue(0));
-                                }
-                            }
-                        }
-                        result.upEdges.add(edge);
-                    }
-                } else if ("downEdges".equals(fieldname)) {
-                    // Should be on START_ARRAY
-                    if (token != JsonToken.START_ARRAY) {
-                        throw new JsonParseException("edges is no array", jp.getCurrentLocation());
-                    }
-
-                    while ((token = jp.nextToken()) != JsonToken.END_ARRAY) {
-                        if (token != JsonToken.START_OBJECT) {
-                            throw new JsonParseException("edge is no object", jp.getCurrentLocation());
-                        }
-                        Edge edge = new Edge();
-                        while (jp.nextToken() != JsonToken.END_OBJECT) {
-                            fieldname = jp.getCurrentName();
-                            token = jp.nextToken();
-                            if ("src".equals(fieldname)) {
-                                edge.src = jp.getIntValue();
-                            } else if ("trgt".equals(fieldname)) {
-                                edge.trgt = jp.getIntValue();
-                            } else if ("cost".equals(fieldname)) {
-                                edge.cost = jp.getIntValue();
-                            } else if ("draw".equals(fieldname)) {
-                                // Should be on START_ARRAY
-                                if (token != JsonToken.START_ARRAY) {
-                                    throw new JsonParseException("draw is no array", jp.getCurrentLocation());
-                                }
-
-                                while (jp.nextToken() != JsonToken.END_ARRAY) {
-                                    // TODO Error checking i.e. for too few parameters would be kinda nice
-                                    edge.path.add(jp.getIntValue(), jp.nextIntValue(0), jp.nextIntValue(0), jp.nextIntValue(0), jp.nextIntValue(0));
-                                }
-                            }
-                        }
-                        result.downEdges.add(edge);
-                    }
+                    readEdges(jp, token, prioResult);
+                } else {
+                    throw new JsonParseException("Unexpected field "+fieldName, jp.getCurrentLocation());
                 }
             } else if (token == JsonToken.END_OBJECT) {
                 // Normal end of request
-                finished = true;
+                break;
             } else if (token == null) {
                 //EOF
                 throw new JsonParseException("Unexpected EOF in Request", jp.getCurrentLocation());
@@ -119,7 +108,65 @@ public class PrioResult {
                 throw new JsonParseException("Unexpected token " + token, jp.getCurrentLocation());
             }
         }
-        return result;
+        return prioResult;
 
+    }
+
+    private static void readEdges(JsonParser jp, JsonToken token, PrioResult prioResult) throws IOException {
+        String fieldname;
+        if (token != JsonToken.START_OBJECT) {
+            throw new JsonParseException("edges is no Json object", jp.getCurrentLocation());
+        }
+        while (jp.nextToken() != JsonToken.END_OBJECT) {
+            fieldname = jp.getCurrentName();
+            token = jp.nextToken(); // move to value, or
+            if ("upEdges".equals(fieldname)) {
+                // Should be on START_ARRAY
+                int edgeNum = 0;
+                int currSrc = -1;
+                if (token != JsonToken.START_ARRAY) {
+                    throw new JsonParseException("edges is no array", jp.getCurrentLocation());
+                }
+
+                while ((token = jp.nextToken()) != JsonToken.END_ARRAY) {
+                    Edge e = Edge.readEdge(jp, token);
+                    // We need to extract the x, y coordinates of the source node, guaranteed to be in PrioResult
+                    // and not in the core
+                    if (e.src != currSrc) {
+                        currSrc = e.src;
+                        Node node = new Node(e.path.getX1(0), e.path.getY1(0));
+                        prioResult.nodes[currSrc-prioResult.coreSize] = node;
+                    }
+                    prioResult.upEdges[edgeNum] = e;
+                    edgeNum++;
+                }
+                if (edgeNum < prioResult.upEdges.length) {
+                    throw new JsonParseException("Missing edges " + edgeNum + " of " + prioResult.upEdges.length + " read", jp.getCurrentLocation());
+                }
+            } else if ("downEdges".equals(fieldname)) {
+                // Should be on START_ARRAY
+                int edgeNum = 0;
+                int currTrgt = -1;
+                if (token != JsonToken.START_ARRAY) {
+                    throw new JsonParseException("edges is no array", jp.getCurrentLocation());
+                }
+
+                while ((token = jp.nextToken()) != JsonToken.END_ARRAY) {
+                    Edge e = Edge.readEdge(jp, token);
+                    // We need to extract the x, y coordinates of the target node, guaranteed to be in PrioResult
+                    // and not in the core
+                    if (e.trgt != currTrgt) {
+                        currTrgt = e.trgt;
+                        Node node = new Node(e.path.getX1(e.path.size()-1), e.path.getY1(e.path.size()-1));
+                        prioResult.nodes[currTrgt-prioResult.coreSize] = node;
+                    }
+                    prioResult.downEdges[edgeNum] = e;
+                    edgeNum++;
+                }
+                if (edgeNum < prioResult.downEdges.length) {
+                    throw new JsonParseException("Missing edges " + edgeNum + " of " + prioResult.downEdges.length + " read", jp.getCurrentLocation());
+                }
+            }
+        }
     }
 }

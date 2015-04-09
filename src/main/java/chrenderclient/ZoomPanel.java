@@ -146,8 +146,8 @@ public class ZoomPanel extends JPanel {
         }
         time0 = System.nanoTime();
         int prioresLines = 0;
-        for (int i = 0; i < priores.upEdges.size(); i++) {
-            RefinedPath path = priores.upEdges.get(i).path;
+        for (int i = 0; i < priores.upEdges.length; i++) {
+            RefinedPath path = priores.upEdges[i].path;
             for (int pathElement = 0; pathElement < path.size(); pathElement++) {
                 g2D.setColor(Color.YELLOW);
                 g2D.setStroke(mediumStreetStroke);
@@ -165,8 +165,8 @@ public class ZoomPanel extends JPanel {
             }
         }
 
-        for (int i = 0; i < priores.downEdges.size(); i++) {
-            RefinedPath path = priores.downEdges.get(i).path;
+        for (int i = 0; i < priores.downEdges.length; i++) {
+            RefinedPath path = priores.downEdges[i].path;
             for (int pathElement = 0; pathElement < path.size(); pathElement++) {
                 g2D.setColor(Color.RED);
                 g2D.setStroke(mediumStreetStroke);
@@ -186,7 +186,7 @@ public class ZoomPanel extends JPanel {
         time1 = System.nanoTime();
         double prioresTime = (time1-time0)/1000000.0;
         System.out.println("Drew "+core.getEdgeCount()+" coreEdges with "+coreLines+" lines in "+coreTime+" ms and\n"+
-                            priores.upEdges.size()+" PrioRes upEdges and "+priores.downEdges.size()+" downEdges with "+prioresLines+" lines in "+prioresTime+" ms");
+                            priores.upEdges.length+" PrioRes upEdges and "+priores.downEdges.length+" downEdges with "+prioresLines+" lines in "+prioresTime+" ms");
     }
 
     private void paintPoint(Point point, Graphics g) {
