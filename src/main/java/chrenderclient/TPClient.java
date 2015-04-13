@@ -1,7 +1,7 @@
 package chrenderclient;
 
 import chrenderclient.clientgraph.CoreGraph;
-import chrenderclient.clientgraph.PrioResult;
+import chrenderclient.clientgraph.Bundle;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.smile.SmileFactory;
 import org.apache.http.HttpEntity;
@@ -76,8 +76,8 @@ public class TPClient {
         return res;
     }
 
-    public PrioResult bbBundleRequest(Rectangle2D.Double range, int minPrio) throws IOException {
-        PrioResult res = null;
+    public Bundle bbBundleRequest(Rectangle2D.Double range, int minPrio) throws IOException {
+        Bundle res = null;
         HttpPost httpPost = new HttpPost(this.uri + "/algbbbundle");
         httpPost.addHeader("Accept", "application/x-jackson-smile");
         String bS = "{\"bbox\":" +
@@ -101,7 +101,7 @@ public class TPClient {
             System.out.println(response1.getStatusLine());
             HttpEntity resEntity = response1.getEntity();
             long time0 = System.nanoTime();
-            res = PrioResult.readResultData(mapper, new BufferedInputStream(resEntity.getContent()));
+            res = Bundle.readResultData(mapper, new BufferedInputStream(resEntity.getContent()));
             long time1 = System.nanoTime();
             System.out.println("Reading took "+(time1-time0)/1000000.0+" ms");
             // do something useful with the response body

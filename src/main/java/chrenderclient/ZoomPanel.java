@@ -5,7 +5,7 @@
 package chrenderclient;
 
 import chrenderclient.clientgraph.CoreGraph;
-import chrenderclient.clientgraph.PrioResult;
+import chrenderclient.clientgraph.Bundle;
 import chrenderclient.clientgraph.RefinedPath;
 
 import javax.imageio.ImageIO;
@@ -27,7 +27,7 @@ public class ZoomPanel extends JPanel {
     public static final long serialVersionUID = 1;
     private Rectangle2D.Double area = new Rectangle2D.Double(17, 44, 302, 469);
 
-    private PrioResult priores;
+    private Bundle priores;
     private CoreGraph core;
     private Rectangle2D.Double bbox = new Rectangle2D.Double();
     private TPClient tp;
@@ -112,13 +112,13 @@ public class ZoomPanel extends JPanel {
         //g2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
         //        RenderingHints.VALUE_ANTIALIAS_ON);
         // First paint the core
+        final Transformer trans = new Transformer(bbox, area);
+        int coreLines = 0;
+        long time0 = System.nanoTime();
         if (core == null) {
             System.err.println("core is null");
             return;
         }
-        final Transformer trans = new Transformer(bbox, area);
-        int coreLines = 0;
-        long time0 = System.nanoTime();
         for (int i = 0; i < core.getEdgeCount(); i++) {
             RefinedPath path = core.getRefinedPath(i);
             for (int pathElement = 0; pathElement < path.size(); pathElement++) {
@@ -137,15 +137,16 @@ public class ZoomPanel extends JPanel {
                         trans.tX(path.getX2(pathElement)), trans.tY(path.getY2(pathElement)));
             }
         }
+
         long time1 = System.nanoTime();
-        double coreTime = (time1-time0)/1000000.0;
+        double coreTime = (time1 - time0) / 1000000.0;
 
         if (priores == null) {
             System.err.println("Priores is null");
             return;
         }
         time0 = System.nanoTime();
-        int prioresLines = 0;
+        int prioresUpLines = 0;
         for (int i = 0; i < priores.upEdges.length; i++) {
             RefinedPath path = priores.upEdges[i].path;
             for (int pathElement = 0; pathElement < path.size(); pathElement++) {
@@ -159,12 +160,12 @@ public class ZoomPanel extends JPanel {
                     g2D.setColor(Color.WHITE);
                     g2D.setStroke(mediumStreetStroke);
                 }*/
-                prioresLines++;
+                prioresUpLines++;
                 g2D.drawLine(trans.tX(path.getX1(pathElement)), trans.tY(path.getY1(pathElement)),
                         trans.tX(path.getX2(pathElement)), trans.tY(path.getY2(pathElement)));
             }
         }
-
+        int prioresDownLines = 0;
         for (int i = 0; i < priores.downEdges.length; i++) {
             RefinedPath path = priores.downEdges[i].path;
             for (int pathElement = 0; pathElement < path.size(); pathElement++) {
@@ -178,15 +179,15 @@ public class ZoomPanel extends JPanel {
                     g2D.setColor(Color.WHITE);
                     g2D.setStroke(mediumStreetStroke);
                 }*/
-                prioresLines++;
+                prioresDownLines++;
                 g2D.drawLine(trans.tX(path.getX1(pathElement)), trans.tY(path.getY1(pathElement)),
                         trans.tX(path.getX2(pathElement)), trans.tY(path.getY2(pathElement)));
             }
         }
         time1 = System.nanoTime();
-        double prioresTime = (time1-time0)/1000000.0;
-        System.out.println("Drew "+core.getEdgeCount()+" coreEdges with "+coreLines+" lines in "+coreTime+" ms and\n"+
-                            priores.upEdges.length+" PrioRes upEdges and "+priores.downEdges.length+" downEdges with "+prioresLines+" lines in "+prioresTime+" ms");
+        double prioresTime = (time1 - time0) / 1000000.0;
+        System.out.println("Drew " + core.getEdgeCount() + " coreEdges with " + coreLines + " lines in " + coreTime + " ms and\n" +
+                priores.upEdges.length + "(" + prioresUpLines + ") PrioRes upEdges and " + priores.downEdges.length + "(" + prioresDownLines + ") downEdges in " + prioresTime + " ms");
     }
 
     private void paintPoint(Point point, Graphics g) {
@@ -273,7 +274,7 @@ public class ZoomPanel extends JPanel {
             e.printStackTrace();
         }
         long time2 = System.nanoTime();
-        System.out.println("extractGraph: " + (double) (time2 - time)/1000000.0+" ms");
+        System.out.println("extractGraph: " + (double) (time2 - time) / 1000000.0 + " ms");
 
     }
 

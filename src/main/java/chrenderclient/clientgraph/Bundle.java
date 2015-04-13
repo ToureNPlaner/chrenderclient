@@ -9,14 +9,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
 
-public class PrioResult {
+public class Bundle {
 
     public final Edge[] upEdges;
     public final Edge[] downEdges;
     public final Node[] nodes;
     public final int coreSize;
 
-    public PrioResult(int nodeCount, int upEdgeCount, int downEdgeCount, int coreSize) {
+    public Bundle(int nodeCount, int upEdgeCount, int downEdgeCount, int coreSize) {
         nodes = new Node[nodeCount];
         upEdges = new Edge[upEdgeCount];
         downEdges = new Edge[downEdgeCount];
@@ -24,7 +24,7 @@ public class PrioResult {
     }
 
 
-    private static PrioResult readPrioResultHead(JsonParser jp, JsonToken token) throws IOException, JsonParseException {
+    private static Bundle readPrioResultHead(JsonParser jp, JsonToken token) throws IOException, JsonParseException {
         String fieldName;
         int nodeCount = -1;
         int upEdgeCount = -1;
@@ -54,11 +54,11 @@ public class PrioResult {
             throw new JsonParseException("Head not complete", jp.getCurrentLocation());
         }
 
-        return new PrioResult(nodeCount, upEdgeCount, downEdgeCount, coreSize);
+        return new Bundle(nodeCount, upEdgeCount, downEdgeCount, coreSize);
     }
 
 
-    public static PrioResult readResultData(ObjectMapper mapper, InputStream in) throws IOException {
+    public static Bundle readResultData(ObjectMapper mapper, InputStream in) throws IOException {
 
         /*
         Prio Result looks something like this:
@@ -80,7 +80,7 @@ public class PrioResult {
 
         String fieldName;
         JsonToken token;
-        PrioResult prioResult = null;
+        Bundle bundle = null;
         while (true) {
             //move to next element or END_OBJECT/EOF
             token = jp.nextToken();
@@ -89,12 +89,12 @@ public class PrioResult {
                 token = jp.nextToken(); // move to value, or
                 // START_OBJECT/START_ARRAY
                 if ("head".equals(fieldName)) {
-                    prioResult = readPrioResultHead(jp, token);
+                    bundle = readPrioResultHead(jp, token);
                 } else if ("edges".equals(fieldName)) {
-                    if(prioResult == null) {
+                    if(bundle == null) {
                         throw new JsonParseException("Need to see head before edges", jp.getCurrentLocation());
                     }
-                    readEdges(jp, token, prioResult);
+                    readEdges(jp, token, bundle);
                 } else {
                     throw new JsonParseException("Unexpected field "+fieldName, jp.getCurrentLocation());
                 }
@@ -108,11 +108,11 @@ public class PrioResult {
                 throw new JsonParseException("Unexpected token " + token, jp.getCurrentLocation());
             }
         }
-        return prioResult;
+        return bundle;
 
     }
 
-    private static void readEdges(JsonParser jp, JsonToken token, PrioResult prioResult) throws IOException {
+    private static void readEdges(JsonParser jp, JsonToken token, Bundle bundle) throws IOException {
         String fieldname;
         if (token != JsonToken.START_OBJECT) {
             throw new JsonParseException("edges is no Json object", jp.getCurrentLocation());
@@ -134,14 +134,17 @@ public class PrioResult {
                     // and not in the core
                     if (e.src != currSrc) {
                         currSrc = e.src;
-                        Node node = new Node(e.path.getX1(0), e.path.getY1(0));
-                        prioResult.nodes[currSrc-prioResult.coreSize] = node;
+                        int index = currSrc - bundle.coreSize;
+                        if(bundle.nodes[index] == null) {
+                            bundle.nodes[index] = new Node(e.path.getX1(0), e.path.getY1(0));
+                        }
+                        bundle.nodes[index].upIndex = index;
                     }
-                    prioResult.upEdges[edgeNum] = e;
+                    bundle.upEdges[edgeNum] = e;
                     edgeNum++;
                 }
-                if (edgeNum < prioResult.upEdges.length) {
-                    throw new JsonParseException("Missing edges " + edgeNum + " of " + prioResult.upEdges.length + " read", jp.getCurrentLocation());
+                if (edgeNum < bundle.upEdges.length) {
+                    throw new JsonParseException("Missing edges " + edgeNum + " of " + bundle.upEdges.length + " read", jp.getCurrentLocation());
                 }
             } else if ("downEdges".equals(fieldname)) {
                 // Should be on START_ARRAY
@@ -157,14 +160,17 @@ public class PrioResult {
                     // and not in the core
                     if (e.trgt != currTrgt) {
                         currTrgt = e.trgt;
-                        Node node = new Node(e.path.getX1(e.path.size()-1), e.path.getY1(e.path.size()-1));
-                        prioResult.nodes[currTrgt-prioResult.coreSize] = node;
+                        int index = currTrgt - bundle.coreSize;
+                        if(bundle.nodes[index] == null) {
+                            bundle.nodes[index] = new Node(e.path.getX1(e.path.size() - 1), e.path.getY1(e.path.size() - 1));
+                        }
+                        bundle.nodes[index].downIndex = index;
                     }
-                    prioResult.downEdges[edgeNum] = e;
+                    bundle.downEdges[edgeNum] = e;
                     edgeNum++;
                 }
-                if (edgeNum < prioResult.downEdges.length) {
-                    throw new JsonParseException("Missing edges " + edgeNum + " of " + prioResult.downEdges.length + " read", jp.getCurrentLocation());
+                if (edgeNum < bundle.downEdges.length) {
+                    throw new JsonParseException("Missing edges " + edgeNum + " of " + bundle.downEdges.length + " read", jp.getCurrentLocation());
                 }
             }
         }
