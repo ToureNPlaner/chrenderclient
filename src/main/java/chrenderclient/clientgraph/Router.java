@@ -43,30 +43,37 @@ public class Router {
     of the path segments to show the path, we will do this right in the future (TODO)
      */
     public void route(int srcX, int srcY, int trgtX, int trgtY) {
+        System.out.println("From ("+srcX+", "+srcY+") to ("+trgtX+", "+trgtY+")");
         FindBundles findBundles = new FindBundles(srcX, srcY, trgtX, trgtY).invoke();
         Bundle srcBundle = findBundles.getSrcBundle();
         Bundle trgtBundle = findBundles.getTrgtBundle();
-        int srcUpIndex = findBundles.getSrcUpIndex();
-        int trgtDownIndex = findBundles.getTrgtDownIndex();
+        int srcId = findBundles.getSrcId();
+        int trgtId = findBundles.getTrgtId();
 
         if(srcBundle == null || trgtBundle == null) {
             System.err.println("Can't find bundles");
             return;
         }
 
-        System.out.println("srcIndex: " + srcUpIndex + " trgtIndex: " + trgtDownIndex);
+        System.out.println("srcIndex: " + srcId + " trgtIndex: " + trgtId);
+        srcX = srcBundle.nodes[srcId].x;
+        srcY = srcBundle.nodes[srcId].y;
+        trgtX = trgtBundle.nodes[trgtId].x;
+        trgtY = trgtBundle.nodes[trgtId].y;
+        System.out.println("Actual from ("+srcX+", "+srcY+") to ("+trgtX+", "+trgtY+")");
         // Scan upGraph
         int[] coreFwdDists =  new int[core.getNodeCount()];
         IntArrayList coreFwdSettled = new IntArrayList();
         Arrays.fill(coreFwdDists, Integer.MAX_VALUE);
-        int[] upPreds = scanUpGraph(srcBundle, srcUpIndex, coreFwdDists, coreFwdSettled);
+        int[] upPreds = scanUpGraph(srcBundle, srcId, coreFwdDists, coreFwdSettled);
 
         // Scan downGraph backwards
         int[] coreBwdDists =  new int[core.getNodeCount()];
         Arrays.fill(coreBwdDists, Integer.MAX_VALUE);
-        int[] downPreds = scanDownGraph(trgtBundle, trgtDownIndex, coreBwdDists);
+        int[] downPreds = scanDownGraph(trgtBundle, trgtId, coreBwdDists);
         // Merge to find shortest paths below core
         // Dijkstra on core
+        System.out.println("Going into CoreDijkstra with "+coreFwdSettled.size()+" settled nodes");
         int bestId = coreDijkstra(coreFwdDists, coreBwdDists, coreFwdSettled);
         // Backtrack
         int currNode = bestId;
@@ -78,26 +85,29 @@ public class Router {
         int[] corePreds = new int[core.getNodeCount()];
         int bestDist = Integer.MAX_VALUE;
         int bestId = 0;
-        PriorityQueue<PQElement> pq = new PriorityQueue<PQElement>(coreFwdSettled.size());
+        PriorityQueue<PQElement> pq = new PriorityQueue<PQElement>();
         for(int i = 0; i <  coreFwdSettled.size(); ++i) {
             int id = coreFwdSettled.get(i);
-            pq.add(new PQElement(id, coreFwdDists[id]));
+            int dist = coreFwdDists[id];
+            pq.add(new PQElement(id, dist));
         }
         while(!pq.isEmpty()) {
             PQElement minElement = pq.poll();
             // We may add elements more then once but ignore them here, this removes the need for the
             // decrease-key operation
-            if(coreFwdDists[minElement.id] > minElement.dist){
+            int currNode = minElement.id;
+            System.out.println("CurrNode: "+currNode);
+            if(minElement.dist > coreFwdDists[currNode]){
                 continue;
             }
 
-            int currNode = minElement.id;
             // Settled in backwards sweep is a best cost candidate
             if(coreBwdDists[currNode] < Integer.MAX_VALUE) {
-                int cost = coreFwdDists[currNode] + coreBwdDists[currNode];
-                if(cost < bestDist){
+                int dist = coreFwdDists[currNode] + coreBwdDists[currNode];
+                System.out.println("Reached core leave node "+currNode+" dist: "+dist+" coreFwdDist: "+coreFwdDists[currNode]+" coreBwdDist: "+coreBwdDists[currNode]);
+                if(dist < bestDist){
                     bestId = currNode;
-                    bestDist = cost;
+                    bestDist = dist;
                 }
                 continue;
             }
@@ -108,8 +118,9 @@ public class Router {
                 int tmpDist = coreFwdDists[currNode] + core.getCost(edgeId);
                 if(tmpDist < coreFwdDists[trgtId]) {
                     coreFwdDists[trgtId] = tmpDist;
-                    pq.add(new PQElement(trgtId, tmpDist));
                     corePreds[trgtId] = edgeId;
+                    pq.add(new PQElement(trgtId, tmpDist));
+                    System.out.println("Adding " + trgtId + " with " + tmpDist);
                 }
 
             }
@@ -120,16 +131,23 @@ public class Router {
         return bestId;
     }
 
-    private int[] scanDownGraph(Bundle trgtBundle, int trgtDownIndex, int[] coreDists) {
+    private int[] scanDownGraph(Bundle trgtBundle, int trgtId, int[] coreDists) {
         int[] downDists = new int[trgtBundle.nodes.length];
         int[] downPreds = new int[trgtBundle.nodes.length];
 
         Arrays.fill(downDists, Integer.MAX_VALUE);
-        downDists[trgtDownIndex] = 0;
+        int trgtDownIndex = trgtBundle.nodes[trgtId].downIndex;
+        downDists[trgtId] = 0;
+
 
         for (int downEdgeIndex = trgtDownIndex;downEdgeIndex < trgtBundle.downEdges.length;++downEdgeIndex) {
             Edge e = trgtBundle.downEdges[downEdgeIndex];
-            int tmpDist = downDists[e.trgt] + e.cost;
+            int tmpDist = downDists[e.trgt-trgtBundle.coreSize];
+            if(tmpDist == Integer.MAX_VALUE) {
+                continue;
+            }
+            tmpDist += e.cost;
+            assert tmpDist >= 0;
             if(e.src >= trgtBundle.coreSize) {
                 int src = e.src-trgtBundle.coreSize;
                 if(tmpDist < downDists[src]) {
@@ -140,6 +158,7 @@ public class Router {
                 // TODO figure out how to predecessor save edges entering the core
                 if(tmpDist < coreDists[e.src]) {
                     coreDists[e.src] = tmpDist;
+                    System.out.println("Entered core backward at "+e.src+" with dist "+tmpDist);
                 }
             }
 
@@ -147,16 +166,22 @@ public class Router {
         return downPreds;
     }
 
-    private int[] scanUpGraph(Bundle srcBundle, int srcUpIndex, int[] coreDists, IntArrayList coreFwdSettled) {
+    private int[] scanUpGraph(Bundle srcBundle, int srcId, int[] coreDists, IntArrayList coreFwdSettled) {
         int[] upDists = new int[srcBundle.nodes.length];
         int[] upPreds = new int[srcBundle.nodes.length];
 
         Arrays.fill(upDists, Integer.MAX_VALUE);
-        upDists[srcUpIndex] = 0;
-
-        for (int upEdgeIndex = srcUpIndex;upEdgeIndex < srcBundle.upEdges.length;++upEdgeIndex) {
+        int srcUpIndex = srcBundle.nodes[srcId].upIndex;
+        assert srcId == srcBundle.upEdges[srcUpIndex].src-srcBundle.coreSize;
+        upDists[srcId] = 0;
+        for (int upEdgeIndex = srcUpIndex;upEdgeIndex < srcBundle.upEdges.length; ++upEdgeIndex) {
             Edge e = srcBundle.upEdges[upEdgeIndex];
-            int tmpDist = upDists[e.src] + e.cost;
+            int tmpDist = upDists[e.src-srcBundle.coreSize];
+            if(tmpDist == Integer.MAX_VALUE) {
+                continue;
+            }
+            tmpDist += e.cost;
+            assert tmpDist >= 0;
             if(e.trgt >= srcBundle.coreSize) {
                 int trgtUp = e.trgt-srcBundle.coreSize;
                 if(tmpDist < upDists[trgtUp]) {
@@ -183,9 +208,9 @@ public class Router {
         private int trgtX;
         private int trgtY;
         private Bundle srcBundle;
-        private int srcUpIndex;
+        private int srcId;
         private Bundle trgtBundle;
-        private int trgtDownIndex;
+        private int trgtId;
 
         public FindBundles(int srcX, int srcY, int trgtX, int trgtY) {
             this.srcX = srcX;
@@ -198,46 +223,47 @@ public class Router {
             return srcBundle;
         }
 
-        public int getSrcUpIndex() {
-            return srcUpIndex;
+        public int getSrcId() {
+            return srcId;
         }
 
         public Bundle getTrgtBundle() {
             return trgtBundle;
         }
 
-        public int getTrgtDownIndex() {
-            return trgtDownIndex;
+        public int getTrgtId() {
+            return trgtId;
         }
 
         public FindBundles invoke() {
             srcBundle = null;
-            srcUpIndex = 0;
+            srcId = 0;
             trgtBundle = null;
-            trgtDownIndex = 0;
+            trgtId = 0;
 
             // TODO linear search sucks
-            int bestSrcDist = Integer.MAX_VALUE;
-            int bestTrgtDist = Integer.MAX_VALUE;
+            double bestSrcDist = Double.MAX_VALUE;
+            double bestTrgtDist = Double.MAX_VALUE;
             for (Bundle bundle : bundles) {
                 for(int i = 0; i < bundle.nodes.length; ++i) {
                     Node n = bundle.nodes[i];
-                    int srcDist = (n.x-srcX)*(n.x-srcX)+(n.y-srcY)*(n.y-srcY);
-                    int trgtDist = (n.x-trgtX)*(n.x-trgtX)+(n.y-trgtY)*(n.y-trgtY);
+
+                    double srcDist = Math.sqrt(Math.pow(n.x-srcX, 2.0)+Math.pow(n.y-srcY, 2.0));
                     if(srcDist < bestSrcDist) {
                         if(srcBundle != bundle){
                             srcBundle = bundle;
                         }
-                        srcUpIndex = srcBundle.nodes[i].upIndex;
+                        srcId = i;
                         bestSrcDist = srcDist;
                     }
 
+                    double trgtDist = Math.sqrt(Math.pow(n.x-trgtX, 2.0)+Math.pow(n.y-trgtY, 2.0));
                     if(trgtDist < bestTrgtDist) {
                         if(trgtBundle != bundle){
                             trgtBundle = bundle;
                         }
-                        trgtDownIndex = trgtBundle.nodes[i].downIndex;
-                        bestSrcDist = srcDist;
+                        trgtId = i;
+                        bestTrgtDist = trgtDist;
                     }
                 }
             }

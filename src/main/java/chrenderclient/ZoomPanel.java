@@ -7,6 +7,7 @@ package chrenderclient;
 import chrenderclient.clientgraph.CoreGraph;
 import chrenderclient.clientgraph.Bundle;
 import chrenderclient.clientgraph.RefinedPath;
+import chrenderclient.clientgraph.Router;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -16,6 +17,7 @@ import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -27,10 +29,11 @@ public class ZoomPanel extends JPanel {
     public static final long serialVersionUID = 1;
     private Rectangle2D.Double area = new Rectangle2D.Double(17, 44, 302, 469);
 
-    private Bundle priores;
+    private Bundle bundle;
     private CoreGraph core;
     private Rectangle2D.Double bbox = new Rectangle2D.Double();
     private TPClient tp;
+    private ArrayList<Point> points;
 
     private int coreSize;
 
@@ -53,10 +56,11 @@ public class ZoomPanel extends JPanel {
     private static BasicStroke largeStreetStroke = new BasicStroke(1.4F);
 
     public ZoomPanel(TPClient tpClient, int coreSize) {
-        this.priores = null;
+        this.bundle = null;
         this.core = null;
         this.tp = tpClient;
         this.coreSize = coreSize;
+        this.points = new ArrayList<Point>();
 
         this.addMouseWheelListener(new java.awt.event.MouseWheelListener() {
             public void mouseWheelMoved(java.awt.event.MouseWheelEvent evt) {
@@ -87,6 +91,7 @@ public class ZoomPanel extends JPanel {
 
     public void addPaintPoint(Point point) {
         paintPoint(point, this.getGraphics());
+        points.add(point);
     }
 
     public void reset() {
@@ -104,6 +109,9 @@ public class ZoomPanel extends JPanel {
 
         g.fillRect((int) area.getX(), (int) area.getY(), (int) area.getWidth(), (int) area.getHeight());
         paintMap(g);
+        for (Point p: points) {
+            paintPoint(p, g);
+        }
     }
 
     public void paintMap(Graphics g) {
@@ -133,22 +141,22 @@ public class ZoomPanel extends JPanel {
                     g2D.setStroke(mediumStreetStroke);
                 }
                 coreLines++;
-                g2D.drawLine(trans.tX(path.getX1(pathElement)), trans.tY(path.getY1(pathElement)),
-                        trans.tX(path.getX2(pathElement)), trans.tY(path.getY2(pathElement)));
+                g2D.drawLine(trans.toSlaveX(path.getX1(pathElement)), trans.toSlaveY(path.getY1(pathElement)),
+                        trans.toSlaveX(path.getX2(pathElement)), trans.toSlaveY(path.getY2(pathElement)));
             }
         }
 
         long time1 = System.nanoTime();
         double coreTime = (time1 - time0) / 1000000.0;
 
-        if (priores == null) {
+        if (bundle == null) {
             System.err.println("Priores is null");
             return;
         }
         time0 = System.nanoTime();
         int prioresUpLines = 0;
-        for (int i = 0; i < priores.upEdges.length; i++) {
-            RefinedPath path = priores.upEdges[i].path;
+        for (int i = 0; i < bundle.upEdges.length; i++) {
+            RefinedPath path = bundle.upEdges[i].path;
             for (int pathElement = 0; pathElement < path.size(); pathElement++) {
                 g2D.setColor(Color.YELLOW);
                 g2D.setStroke(mediumStreetStroke);
@@ -161,13 +169,13 @@ public class ZoomPanel extends JPanel {
                     g2D.setStroke(mediumStreetStroke);
                 }*/
                 prioresUpLines++;
-                g2D.drawLine(trans.tX(path.getX1(pathElement)), trans.tY(path.getY1(pathElement)),
-                        trans.tX(path.getX2(pathElement)), trans.tY(path.getY2(pathElement)));
+                g2D.drawLine(trans.toSlaveX(path.getX1(pathElement)), trans.toSlaveY(path.getY1(pathElement)),
+                        trans.toSlaveX(path.getX2(pathElement)), trans.toSlaveY(path.getY2(pathElement)));
             }
         }
         int prioresDownLines = 0;
-        for (int i = 0; i < priores.downEdges.length; i++) {
-            RefinedPath path = priores.downEdges[i].path;
+        for (int i = 0; i < bundle.downEdges.length; i++) {
+            RefinedPath path = bundle.downEdges[i].path;
             for (int pathElement = 0; pathElement < path.size(); pathElement++) {
                 g2D.setColor(Color.RED);
                 g2D.setStroke(mediumStreetStroke);
@@ -180,20 +188,20 @@ public class ZoomPanel extends JPanel {
                     g2D.setStroke(mediumStreetStroke);
                 }*/
                 prioresDownLines++;
-                g2D.drawLine(trans.tX(path.getX1(pathElement)), trans.tY(path.getY1(pathElement)),
-                        trans.tX(path.getX2(pathElement)), trans.tY(path.getY2(pathElement)));
+                g2D.drawLine(trans.toSlaveX(path.getX1(pathElement)), trans.toSlaveY(path.getY1(pathElement)),
+                        trans.toSlaveX(path.getX2(pathElement)), trans.toSlaveY(path.getY2(pathElement)));
             }
         }
         time1 = System.nanoTime();
         double prioresTime = (time1 - time0) / 1000000.0;
         System.out.println("Drew " + core.getEdgeCount() + " coreEdges with " + coreLines + " lines in " + coreTime + " ms and\n" +
-                priores.upEdges.length + "(" + prioresUpLines + ") PrioRes upEdges and " + priores.downEdges.length + "(" + prioresDownLines + ") downEdges in " + prioresTime + " ms");
+                bundle.upEdges.length + "(" + prioresUpLines + ") PrioRes upEdges and " + bundle.downEdges.length + "(" + prioresDownLines + ") downEdges in " + prioresTime + " ms");
     }
 
     private void paintPoint(Point point, Graphics g) {
         g.setColor(Color.BLUE);
         if (area.contains(point))
-            g.drawRect((int) point.getX(), (int) point.getY(), 1, 1);
+            g.drawRect((int) point.getX(), (int) point.getY(), 2, 2);
     }
 
     void saveImage(String fileName) throws IOException {
@@ -269,7 +277,7 @@ public class ZoomPanel extends JPanel {
 
         try {
             System.err.println("Requesting " + extendedRange);
-            priores = tp.bbBundleRequest(extendedRange, minPriority);
+            bundle = tp.bbBundleRequest(extendedRange, minPriority);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -292,10 +300,13 @@ public class ZoomPanel extends JPanel {
     }
 
     private void zoomPanelMousePressed(java.awt.event.MouseEvent evt) {
-        System.out.println("Mouse pressed");
+        System.out.println("Mouse pressed, Button: "+evt.getButton());
         originalX = evt.getX();
         originalY = evt.getY();
         System.out.println("new x y: " + originalX + ", " + originalY);
+        if(evt.getButton() == 3) {
+            addPaintPoint(new Point(evt.getX(), evt.getY()));
+        }
     }
 
     private void zoomPanelMouseReleased(java.awt.event.MouseEvent evt) {
@@ -328,9 +339,11 @@ public class ZoomPanel extends JPanel {
         double y = evt.getY() - yBorder;
         System.out.println("pos: " + x + ", " + y);
         double factor = bbox.getWidth() / area.width;
-        x = x * factor;
-        y = y * factor;
+
         if (notches > 0) {
+            // TODO translate points
+            x = x * factor;
+            y = y * factor;
             bbox.x -= (changeFactor - 1) * x;
             bbox.y -= (changeFactor - 1) * y;
             bbox.width *= changeFactor;
@@ -338,6 +351,9 @@ public class ZoomPanel extends JPanel {
         } else {
 
             if (bbox.width > 100 && bbox.height > 100) {
+                // TODO translate points
+                x = x * factor;
+                y = y * factor;
                 bbox.x += x * (1 - 1.0 / changeFactor);
                 bbox.y += y * (1 - 1.0 / changeFactor);
                 bbox.width = bbox.width / changeFactor;
@@ -394,6 +410,8 @@ public class ZoomPanel extends JPanel {
         if (dx == 0 && dy == 0) {
             return;
         }
+
+        translatePoints(dx, dy);
         double factor = bbox.getWidth() / area.width;
         dx = (int) (dx * factor);
         dy = (int) (dy * factor);
@@ -407,4 +425,26 @@ public class ZoomPanel extends JPanel {
         repaint();
     }
 
+    public void routeRequested(java.awt.event.ActionEvent evt) {
+        System.out.println("Route requested");
+        ArrayList<Bundle> bundles = new ArrayList<Bundle>();
+        bundles.add(bundle);
+        Router router = new Router(core, bundles);
+        Transformer trans = new Transformer(bbox, area);
+        for(int pointNum = 0; pointNum < points.size()-1; ++pointNum) {
+            Point pSrc = points.get(pointNum);
+            Point pTrgt = points.get(pointNum+1);
+            router.route(trans.toMasterX(pSrc.x), trans.toMasterY(pSrc.y), trans.toMasterX(pTrgt.x), trans.toMasterY(pTrgt.y));
+        }
+    }
+
+    private void translatePoints(int dx, int dy) {
+        for(Point p: points) {
+            p.translate(dx, dy);
+        }
+    }
+
+    public void clearPoints() {
+        points.clear();
+    }
 }

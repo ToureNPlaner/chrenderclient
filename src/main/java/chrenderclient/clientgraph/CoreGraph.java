@@ -186,6 +186,9 @@ public final class CoreGraph {
                 throw new JsonParseException("Unexpected token " + token, jp.getCurrentLocation());
             }
         }
+        if(result != null) {
+            result.generateOutEdgeOffsets();
+        }
         return result;
     }
 }

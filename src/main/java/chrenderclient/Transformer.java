@@ -23,12 +23,20 @@ public class Transformer {
     }
 
 
-    public int tX(int x) {
+    public int toSlaveX(int x) {
         return (int)((x - master.x) / scale + slave.x);
     }
 
-    public int tY(int y) {
+    public int toSlaveY(int y) {
         return (int)((y - master.y) / scale + slave.y);
+    }
+
+    public int toMasterX(int x) {
+        return (int)(master.x+(x-slave.x)*scale);
+    }
+
+    public int toMasterY(int y) {
+        return (int)(master.y+(y-slave.y)*scale);
     }
 
 }

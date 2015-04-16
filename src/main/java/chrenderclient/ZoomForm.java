@@ -162,7 +162,7 @@ public class ZoomForm extends javax.swing.JFrame {
         RunDijkstraMenuItem.setText("Run Dijkstra");
         RunDijkstraMenuItem.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                RunDijkstraMenuItemActionPerformed(evt);
+                zoomPanel.routeRequested(evt);
             }
         });
         AlgorithmsMenu.add(RunDijkstraMenuItem);
@@ -230,6 +230,7 @@ public class ZoomForm extends javax.swing.JFrame {
 
 
     private void ClearMarkerMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ClearMarkerMenuItemActionPerformed
+        zoomPanel.clearPoints();
         repaint();
     }//GEN-LAST:event_ClearMarkerMenuItemActionPerformed
 
@@ -238,8 +239,7 @@ public class ZoomForm extends javax.swing.JFrame {
     }//GEN-LAST:event_UndoLastMarkerMenuItemActionPerformed
 
 
-    private void RunDijkstraMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_RunDijkstraMenuItemActionPerformed
-    }//GEN-LAST:event_RunDijkstraMenuItemActionPerformed
+
 
 
 

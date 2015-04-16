@@ -138,7 +138,7 @@ public class Bundle {
                         if(bundle.nodes[index] == null) {
                             bundle.nodes[index] = new Node(e.path.getX1(0), e.path.getY1(0));
                         }
-                        bundle.nodes[index].upIndex = index;
+                        bundle.nodes[index].upIndex = edgeNum;
                     }
                     bundle.upEdges[edgeNum] = e;
                     edgeNum++;
@@ -164,7 +164,7 @@ public class Bundle {
                         if(bundle.nodes[index] == null) {
                             bundle.nodes[index] = new Node(e.path.getX1(e.path.size() - 1), e.path.getY1(e.path.size() - 1));
                         }
-                        bundle.nodes[index].downIndex = index;
+                        bundle.nodes[index].downIndex = edgeNum;
                     }
                     bundle.downEdges[edgeNum] = e;
                     edgeNum++;
