@@ -2,6 +2,7 @@ package chrenderclient.clientgraph;
 
 import com.carrotsearch.hppc.IntArrayList;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.PriorityQueue;
@@ -42,7 +43,7 @@ public class Router {
     Compute route from (srcX, srcY) to (trgtX, trgtY), for now we change the type
     of the path segments to show the path, we will do this right in the future (TODO)
      */
-    public void route(int srcX, int srcY, int trgtX, int trgtY) {
+    public ArrayDeque<RefinedPath> route(int srcX, int srcY, int trgtX, int trgtY) throws PathNotFoundException {
         System.out.println("From ("+srcX+", "+srcY+") to ("+trgtX+", "+trgtY+")");
         FindBundles findBundles = new FindBundles(srcX, srcY, trgtX, trgtY).invoke();
         Bundle srcBundle = findBundles.getSrcBundle();
@@ -52,7 +53,7 @@ public class Router {
 
         if(srcBundle == null || trgtBundle == null) {
             System.err.println("Can't find bundles");
-            return;
+            throw new PathNotFoundException("Can't find bundle");
         }
 
         System.out.println("srcIndex: " + srcId + " trgtIndex: " + trgtId);
@@ -62,29 +63,74 @@ public class Router {
         trgtY = trgtBundle.nodes[trgtId].y;
         System.out.println("Actual from ("+srcX+", "+srcY+") to ("+trgtX+", "+trgtY+")");
         // Scan upGraph
+        int[] corePreds = new int[core.getNodeCount()];
+        int[] coreEnterPreds = new int[core.getNodeCount()];
+        int[] coreLeavePreds = new int[core.getNodeCount()];
         int[] coreFwdDists =  new int[core.getNodeCount()];
         IntArrayList coreFwdSettled = new IntArrayList();
         Arrays.fill(coreFwdDists, Integer.MAX_VALUE);
-        int[] upPreds = scanUpGraph(srcBundle, srcId, coreFwdDists, coreFwdSettled);
+        int[] upPreds = scanUpGraph(srcBundle, srcId, coreFwdDists, coreEnterPreds, coreFwdSettled);
 
         // Scan downGraph backwards
         int[] coreBwdDists =  new int[core.getNodeCount()];
         Arrays.fill(coreBwdDists, Integer.MAX_VALUE);
-        int[] downPreds = scanDownGraph(trgtBundle, trgtId, coreBwdDists);
-        // Merge to find shortest paths below core
+        int[] downPreds = scanDownGraph(trgtBundle, trgtId, coreBwdDists, coreLeavePreds);
+        // TODO Merge to find shortest paths below core
         // Dijkstra on core
         System.out.println("Going into CoreDijkstra with "+coreFwdSettled.size()+" settled nodes");
-        int bestId = coreDijkstra(coreFwdDists, coreBwdDists, coreFwdSettled);
+        int bestId = coreDijkstra(coreFwdDists, coreBwdDists, corePreds, coreFwdSettled);
+        if(bestId < 0) {
+            throw new PathNotFoundException("Can't reach target");
+        }
         // Backtrack
-        int currNode = bestId;
-
-
+        ArrayDeque<RefinedPath> path = backtrackWithCore(srcBundle, trgtBundle, upPreds, downPreds, corePreds, coreEnterPreds, coreLeavePreds, srcId, trgtId, bestId);
+        return path;
     }
 
-    private int coreDijkstra(int[] coreFwdDists, int[] coreBwdDists, IntArrayList coreFwdSettled) {
-        int[] corePreds = new int[core.getNodeCount()];
+    private ArrayDeque<RefinedPath> backtrackWithCore(Bundle srcBundle, Bundle trgtBundle, int[] upPreds, int[] downPreds, int[] corePreds, int[] coreEnterPreds, int[] coreLeavePreds, int srcId, int trgtId, int bestId) {
+        // bestId is in core, we need to backtrack trough the core and separately through the up- and
+        // down-Graphs. bestId is also at the edge of the core leaving to the down graph
+        ArrayDeque<RefinedPath> path = new ArrayDeque<RefinedPath>();
+
+        // down graph
+        int downEdgeIndex = coreLeavePreds[bestId];
+        Edge currEdge = trgtBundle.downEdges[downEdgeIndex];
+        int currNode = currEdge.trgt-trgtBundle.coreSize;
+        path.addLast(currEdge.path);
+        while (currNode != trgtId) {
+            downEdgeIndex = downPreds[currNode];
+            currEdge = trgtBundle.downEdges[downEdgeIndex];
+            path.addLast(currEdge.path);
+            currNode = currEdge.trgt-trgtBundle.coreSize;
+        }
+
+
+        // core graph
+        currNode = bestId;
+        while (coreEnterPreds[currNode] == 0) {
+            int currEdgeId = corePreds[currNode];
+            path.addFirst(core.getRefinedPath(currEdgeId));
+            currNode = core.getSource(currEdgeId);
+        }
+
+        // up graph
+        int upEdgeIndex = coreEnterPreds[currNode];
+        Edge edge = srcBundle.upEdges[upEdgeIndex];
+        path.addFirst(edge.path);
+        currNode = edge.src-srcBundle.coreSize;
+        while (currNode != srcId) {
+            upEdgeIndex = upPreds[currNode];
+            edge = srcBundle.upEdges[upEdgeIndex];
+            path.addFirst(edge.path);
+            currNode = edge.src-srcBundle.coreSize;
+        }
+
+        return path;
+    }
+
+    private int coreDijkstra(int[] coreFwdDists, int[] coreBwdDists, int[] corePreds, IntArrayList coreFwdSettled) {
         int bestDist = Integer.MAX_VALUE;
-        int bestId = 0;
+        int bestId = -1;
         PriorityQueue<PQElement> pq = new PriorityQueue<PQElement>();
         for(int i = 0; i <  coreFwdSettled.size(); ++i) {
             int id = coreFwdSettled.get(i);
@@ -131,7 +177,7 @@ public class Router {
         return bestId;
     }
 
-    private int[] scanDownGraph(Bundle trgtBundle, int trgtId, int[] coreDists) {
+    private int[] scanDownGraph(Bundle trgtBundle, int trgtId, int[] coreDists, int[] coreLeavePreds) {
         int[] downDists = new int[trgtBundle.nodes.length];
         int[] downPreds = new int[trgtBundle.nodes.length];
 
@@ -155,10 +201,10 @@ public class Router {
                     downPreds[src] = downEdgeIndex;
                 }
             } else {
-                // TODO figure out how to predecessor save edges entering the core
+                // Edges leaving the core are saved
                 if(tmpDist < coreDists[e.src]) {
                     coreDists[e.src] = tmpDist;
-                    System.out.println("Entered core backward at "+e.src+" with dist "+tmpDist);
+                    coreLeavePreds[e.src] = downEdgeIndex;
                 }
             }
 
@@ -166,7 +212,7 @@ public class Router {
         return downPreds;
     }
 
-    private int[] scanUpGraph(Bundle srcBundle, int srcId, int[] coreDists, IntArrayList coreFwdSettled) {
+    private int[] scanUpGraph(Bundle srcBundle, int srcId, int[] coreDists, int[] coreEnterPreds, IntArrayList coreFwdSettled) {
         int[] upDists = new int[srcBundle.nodes.length];
         int[] upPreds = new int[srcBundle.nodes.length];
 
@@ -189,12 +235,13 @@ public class Router {
                     upPreds[trgtUp] = upEdgeIndex;
                 }
             } else {
-                // TODO figure out how to predecessor save edges entering the core
+                // Edges entering the core are saved
                 if(tmpDist < coreDists[e.trgt]) {
                     if(coreDists[e.trgt] == Integer.MAX_VALUE) {
                         coreFwdSettled.add(e.trgt);
                     }
                     coreDists[e.trgt] = tmpDist;
+                    coreEnterPreds[e.trgt] = upEdgeIndex;
                 }
             }
 

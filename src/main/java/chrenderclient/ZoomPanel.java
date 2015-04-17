@@ -4,10 +4,7 @@
  */
 package chrenderclient;
 
-import chrenderclient.clientgraph.CoreGraph;
-import chrenderclient.clientgraph.Bundle;
-import chrenderclient.clientgraph.RefinedPath;
-import chrenderclient.clientgraph.Router;
+import chrenderclient.clientgraph.*;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -17,6 +14,7 @@ import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -34,6 +32,7 @@ public class ZoomPanel extends JPanel {
     private Rectangle2D.Double bbox = new Rectangle2D.Double();
     private TPClient tp;
     private ArrayList<Point> points;
+    private ArrayDeque<RefinedPath> paths;
 
     private int coreSize;
 
@@ -55,9 +54,11 @@ public class ZoomPanel extends JPanel {
     private static BasicStroke mediumStreetStroke = new BasicStroke(1.1F);
     private static BasicStroke largeStreetStroke = new BasicStroke(1.4F);
 
+
     public ZoomPanel(TPClient tpClient, int coreSize) {
         this.bundle = null;
         this.core = null;
+        this.paths = null;
         this.tp = tpClient;
         this.coreSize = coreSize;
         this.points = new ArrayList<Point>();
@@ -161,10 +162,10 @@ public class ZoomPanel extends JPanel {
                 g2D.setColor(Color.YELLOW);
                 g2D.setStroke(mediumStreetStroke);
 
-                /*if (path.getType(pathElement) <= 2) {
+                /*if (paths.getType(pathElement) <= 2) {
                     g2D.setColor(Color.YELLOW);
                     g2D.setStroke(largeStreetStroke);
-                } else if (path.getType(pathElement) <= 9) {
+                } else if (paths.getType(pathElement) <= 9) {
                     g2D.setColor(Color.WHITE);
                     g2D.setStroke(mediumStreetStroke);
                 }*/
@@ -180,10 +181,10 @@ public class ZoomPanel extends JPanel {
                 g2D.setColor(Color.RED);
                 g2D.setStroke(mediumStreetStroke);
 
-                /*if (path.getType(pathElement) <= 2) {
+                /*if (paths.getType(pathElement) <= 2) {
                     g2D.setColor(Color.YELLOW);
                     g2D.setStroke(largeStreetStroke);
-                } else if (path.getType(pathElement) <= 9) {
+                } else if (paths.getType(pathElement) <= 9) {
                     g2D.setColor(Color.WHITE);
                     g2D.setStroke(mediumStreetStroke);
                 }*/
@@ -196,6 +197,17 @@ public class ZoomPanel extends JPanel {
         double prioresTime = (time1 - time0) / 1000000.0;
         System.out.println("Drew " + core.getEdgeCount() + " coreEdges with " + coreLines + " lines in " + coreTime + " ms and\n" +
                 bundle.upEdges.length + "(" + prioresUpLines + ") PrioRes upEdges and " + bundle.downEdges.length + "(" + prioresDownLines + ") downEdges in " + prioresTime + " ms");
+
+        if(paths != null) {
+            for (RefinedPath path : paths) {
+                for (int pathElement = 0; pathElement < path.size(); pathElement++) {
+                    g2D.setColor(Color.BLUE);
+                    g2D.setStroke(largeStreetStroke);
+                    g2D.drawLine(trans.toSlaveX(path.getX1(pathElement)), trans.toSlaveY(path.getY1(pathElement)),
+                            trans.toSlaveX(path.getX2(pathElement)), trans.toSlaveY(path.getY2(pathElement)));
+                }
+            }
+        }
     }
 
     private void paintPoint(Point point, Graphics g) {
@@ -434,7 +446,12 @@ public class ZoomPanel extends JPanel {
         for(int pointNum = 0; pointNum < points.size()-1; ++pointNum) {
             Point pSrc = points.get(pointNum);
             Point pTrgt = points.get(pointNum+1);
-            router.route(trans.toMasterX(pSrc.x), trans.toMasterY(pSrc.y), trans.toMasterX(pTrgt.x), trans.toMasterY(pTrgt.y));
+            try {
+                paths = router.route(trans.toMasterX(pSrc.x), trans.toMasterY(pSrc.y), trans.toMasterX(pTrgt.x), trans.toMasterY(pTrgt.y));
+            } catch (PathNotFoundException e) {
+                JOptionPane.showMessageDialog(null, "Path not found", "Routing unsuccesfull: "+e.getMessage(), JOptionPane.INFORMATION_MESSAGE);
+            }
+
         }
     }
 
