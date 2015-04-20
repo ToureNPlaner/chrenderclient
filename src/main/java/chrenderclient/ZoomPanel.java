@@ -91,6 +91,8 @@ public class ZoomPanel extends JPanel {
     }
 
     public void addPaintPoint(Point point) {
+        final Transformer trans = new Transformer(bbox, area);
+        point = new Point(trans.toMasterX(point.x), trans.toMasterY(point.y));
         paintPoint(point, this.getGraphics());
         points.add(point);
     }
@@ -211,9 +213,9 @@ public class ZoomPanel extends JPanel {
     }
 
     private void paintPoint(Point point, Graphics g) {
+        final Transformer trans = new Transformer(bbox, area);
         g.setColor(Color.BLUE);
-        if (area.contains(point))
-            g.drawRect((int) point.getX(), (int) point.getY(), 2, 2);
+        g.drawRect(trans.toSlaveX((int) point.getX()), trans.toSlaveY((int) point.getY()), 2, 2);
     }
 
     void saveImage(String fileName) throws IOException {
@@ -316,8 +318,9 @@ public class ZoomPanel extends JPanel {
         originalX = evt.getX();
         originalY = evt.getY();
         System.out.println("new x y: " + originalX + ", " + originalY);
-        if(evt.getButton() == 3) {
-            addPaintPoint(new Point(evt.getX(), evt.getY()));
+        Point pointOnCanvas = new Point(evt.getX(), evt.getY());
+        if(evt.getButton() == 3 && area.contains(pointOnCanvas)) {
+            addPaintPoint(pointOnCanvas);
         }
     }
 
@@ -423,7 +426,6 @@ public class ZoomPanel extends JPanel {
             return;
         }
 
-        translatePoints(dx, dy);
         double factor = bbox.getWidth() / area.width;
         dx = (int) (dx * factor);
         dy = (int) (dy * factor);
@@ -441,24 +443,20 @@ public class ZoomPanel extends JPanel {
         System.out.println("Route requested");
         ArrayList<Bundle> bundles = new ArrayList<Bundle>();
         bundles.add(bundle);
+        paths = new ArrayDeque<RefinedPath>();
         Router router = new Router(core, bundles);
-        Transformer trans = new Transformer(bbox, area);
         for(int pointNum = 0; pointNum < points.size()-1; ++pointNum) {
             Point pSrc = points.get(pointNum);
             Point pTrgt = points.get(pointNum+1);
             try {
-                paths = router.route(trans.toMasterX(pSrc.x), trans.toMasterY(pSrc.y), trans.toMasterX(pTrgt.x), trans.toMasterY(pTrgt.y));
+                paths.addAll(router.route(pSrc.x, pSrc.y, pTrgt.x, pTrgt.y));
+
             } catch (PathNotFoundException e) {
                 JOptionPane.showMessageDialog(null, "Path not found", "Routing unsuccesfull: "+e.getMessage(), JOptionPane.INFORMATION_MESSAGE);
             }
 
         }
-    }
-
-    private void translatePoints(int dx, int dy) {
-        for(Point p: points) {
-            p.translate(dx, dy);
-        }
+        repaint();
     }
 
     public void clearPoints() {
