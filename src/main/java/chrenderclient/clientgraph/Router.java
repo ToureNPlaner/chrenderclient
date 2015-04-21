@@ -79,8 +79,11 @@ public class Router {
         int[] downPreds = scanDownGraph(trgtBundle, trgtId, downDists, coreBwdDists, coreLeavePreds);
 
 
-        // TODO Merge to find shortest paths below core
-        //int bestId = tryMergeBelowCore(srcBundle, trgtBundle, srcId, trgtId, upPreds, downPreds, upDists, downDists);
+        // Merge to find shortest paths below core
+        ArrayDeque<RefinedPath> path = tryMergeBelowCore(srcBundle, trgtBundle, srcId, trgtId, upPreds, downPreds, upDists, downDists);
+        if (path != null) {
+            return path;
+        }
 
         // Dijkstra on core
         System.out.println("Going into CoreDijkstra with " + coreFwdSettled.size() + " settled nodes");
@@ -90,28 +93,58 @@ public class Router {
             throw new PathNotFoundException("Can't reach target");
         }
         // Backtrack
-        ArrayDeque<RefinedPath> path = backtrackWithCore(srcBundle, trgtBundle, upPreds, downPreds, corePreds, coreEnterPreds, coreLeavePreds, srcId, trgtId, bestId);
+         path = backtrackWithCore(srcBundle, trgtBundle, upPreds, downPreds, corePreds, coreEnterPreds, coreLeavePreds, srcId, trgtId, bestId);
         return path;
     }
 
-    private int tryMergeBelowCore(Bundle srcBundle, Bundle trgtBundle, int srcId, int trgtId, int[] upPreds, int[] downPreds, int[] upDists, int[] downDists) {
-        int bestId = -1;
+    private ArrayDeque<RefinedPath> tryMergeBelowCore(Bundle srcBundle, Bundle trgtBundle, int srcId, int trgtId, int[] upPreds, int[] downPreds, int[] upDists, int[] downDists) {
+        int bestDownId = -1;
+        int bestUpId = -1;
         int bestDist = Integer.MAX_VALUE;
-        System.out.println("Up graph nodes");
-        for (int i = 0; i < srcBundle.nodes.length; ++i) {
-            if(upDists[i] < Integer.MAX_VALUE) {
-                System.out.println("Dist: "+upDists[i]+" NodeId: " + srcBundle.nodes[i].oId);
+        ArrayDeque<RefinedPath> path = null;
+
+        int i = 0;
+        int j = 0;
+        while ( i < srcBundle.nodes.length || j < trgtBundle.nodes.length) {
+            if (srcBundle.nodes[i].oId == trgtBundle.nodes[j].oId) {
+                if(upDists[i] < Integer.MAX_VALUE && downDists[j] < Integer.MAX_VALUE) {
+                    int tmpDist = upDists[i] + downDists[j];
+                    if (tmpDist < bestDist) {
+                        bestDist = tmpDist;
+                        bestUpId = i;
+                        bestDownId = j;
+                    }
+                }
+                ++i;
+                ++j;
+            } else if (srcBundle.nodes[i].oId < trgtBundle.nodes[j].oId) {
+                ++i;
+            } else if (srcBundle.nodes[i].oId > trgtBundle.nodes[j].oId) {
+                ++j;
             }
         }
+        if (bestDist < Integer.MAX_VALUE) {
+            System.out.println("Best Dist below core: " + bestDist + " bestUpId: " + bestUpId + " bestDownId: " + bestDownId);
+            path = new ArrayDeque<RefinedPath>();
+            // up graph
+            int currNode = bestUpId;
+            while (currNode != srcId) {
+                int upEdgeIndex = upPreds[currNode];
+                Edge edge = srcBundle.upEdges[upEdgeIndex];
+                path.addFirst(edge.path);
+                currNode = edge.src - srcBundle.coreSize;
+            }
 
-        System.out.println("Down graph nodes");
-        for (int i = 0; i < trgtBundle.nodes.length; ++i) {
-            if(downDists[i] < Integer.MAX_VALUE) {
-                System.out.println("Dist: "+downDists[i]+" NodeId: " + trgtBundle.nodes[i].oId);
+            // down graph
+            currNode = bestDownId;
+            while (currNode != trgtId) {
+                int downEdgeIndex = downPreds[currNode];
+                Edge currEdge = trgtBundle.downEdges[downEdgeIndex];
+                path.addLast(currEdge.path);
+                currNode = currEdge.trgt - trgtBundle.coreSize;
             }
         }
-
-        return bestId;
+        return path;
     }
 
     private ArrayDeque<RefinedPath> backtrackWithCore(Bundle srcBundle, Bundle trgtBundle, int[] upPreds, int[] downPreds, int[] corePreds, int[] coreEnterPreds, int[] coreLeavePreds, int srcId, int trgtId, int bestId) {
