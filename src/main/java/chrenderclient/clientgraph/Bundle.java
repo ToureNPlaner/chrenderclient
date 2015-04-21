@@ -136,7 +136,7 @@ public class Bundle {
                         currSrc = e.src;
                         int index = currSrc - bundle.coreSize;
                         if(bundle.nodes[index] == null) {
-                            bundle.nodes[index] = new Node(e.path.getX1(0), e.path.getY1(0));
+                            bundle.nodes[index] = new Node(e.path.getX1(0), e.path.getY1(0), currSrc);
                         }
                         bundle.nodes[index].upIndex = edgeNum;
                     }
@@ -162,7 +162,7 @@ public class Bundle {
                         currTrgt = e.trgt;
                         int index = currTrgt - bundle.coreSize;
                         if(bundle.nodes[index] == null) {
-                            bundle.nodes[index] = new Node(e.path.getX1(e.path.size() - 1), e.path.getY1(e.path.size() - 1));
+                            bundle.nodes[index] = new Node(e.path.getX1(e.path.size() - 1), e.path.getY1(e.path.size() - 1), currTrgt);
                         }
                         bundle.nodes[index].downIndex = edgeNum;
                     }
