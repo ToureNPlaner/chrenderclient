@@ -36,25 +36,21 @@ public final class CoreGraph {
         paths = new RefinedPath[edgeCount];
     }
 
-    private void generateOutEdgeOffsets() {
-        int currentSource;
-        int prevSource = -1;
+    private void generateOffsets() {
         this.offsetOut = new int[nodeCount + 1];
-        for (int i = 0; i < edgeCount; i++) {
-            currentSource = srcs[i];
-            if (currentSource != prevSource) {
-                for (int j = currentSource; j > prevSource; j--) {
-                    offsetOut[j] = i;
-                }
-                prevSource = currentSource;
-            }
-        }
 
-        offsetOut[nodeCount] = edgeCount;
-        // assuming we have at least one edge
-        for (int cnt = nodeCount - 1; offsetOut[cnt] == 0; cnt--) {
-            offsetOut[cnt] = offsetOut[cnt + 1];
+        for (int i = 0; i < edgeCount; ++i) {
+            offsetOut[srcs[i]]++;
         }
+        int outSum = 0;
+        int inSum = 0;
+        for (int i = 0; i < nodeCount; ++i) {
+            int oldOutSum = outSum;
+            int oldInSum = inSum;
+            outSum += offsetOut[i];
+            offsetOut[i] = oldOutSum;
+        }
+        offsetOut[nodeCount] = outSum;
     }
 
     private void setEdge(int pos, int src, int trgt, int cost, int oEdgeId, RefinedPath path) {
@@ -187,7 +183,7 @@ public final class CoreGraph {
             }
         }
         if(result != null) {
-            result.generateOutEdgeOffsets();
+            result.generateOffsets();
         }
         return result;
     }
