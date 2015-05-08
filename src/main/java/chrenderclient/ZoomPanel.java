@@ -27,7 +27,8 @@ public class ZoomPanel extends JPanel {
     public static final long serialVersionUID = 1;
     private Rectangle2D.Double area = new Rectangle2D.Double(17, 44, 302, 469);
 
-    private Bundle bundle;
+    private ArrayList<Bundle> bundles;
+    private Router router;
     private CoreGraph core;
     private Rectangle2D.Double bbox = new Rectangle2D.Double();
     private TPClient tp;
@@ -56,12 +57,14 @@ public class ZoomPanel extends JPanel {
 
 
     public ZoomPanel(TPClient tpClient, int coreSize) {
-        this.bundle = null;
         this.core = null;
         this.paths = null;
         this.tp = tpClient;
         this.coreSize = coreSize;
         this.points = new ArrayList<Point>();
+        this.bundles = new ArrayList<Bundle>();
+        this.paths = new ArrayDeque<RefinedPath>();
+        this.router = null;
 
         this.addMouseWheelListener(new java.awt.event.MouseWheelListener() {
             public void mouseWheelMoved(java.awt.event.MouseWheelEvent evt) {
@@ -112,7 +115,7 @@ public class ZoomPanel extends JPanel {
 
         g.fillRect((int) area.getX(), (int) area.getY(), (int) area.getWidth(), (int) area.getHeight());
         paintMap(g);
-        for (Point p: points) {
+        for (Point p : points) {
             paintPoint(p, g);
         }
     }
@@ -152,17 +155,19 @@ public class ZoomPanel extends JPanel {
         long time1 = System.nanoTime();
         double coreTime = (time1 - time0) / 1000000.0;
 
-        if (bundle == null) {
+        if (bundles.isEmpty()) {
             System.err.println("Priores is null");
             return;
         }
         time0 = System.nanoTime();
         int prioresUpLines = 0;
-        for (int i = 0; i < bundle.upEdges.length; i++) {
-            RefinedPath path = bundle.upEdges[i].path;
-            for (int pathElement = 0; pathElement < path.size(); pathElement++) {
-                g2D.setColor(Color.YELLOW);
-                g2D.setStroke(mediumStreetStroke);
+        Color bundleBaseColor = Color.YELLOW;
+        for (Bundle bundle : bundles) {
+            for (int i = 0; i < bundle.upEdges.length; i++) {
+                RefinedPath path = bundle.upEdges[i].path;
+                for (int pathElement = 0; pathElement < path.size(); pathElement++) {
+                    g2D.setColor(bundleBaseColor);
+                    g2D.setStroke(mediumStreetStroke);
 
                 /*if (paths.getType(pathElement) <= 2) {
                     g2D.setColor(Color.YELLOW);
@@ -171,17 +176,18 @@ public class ZoomPanel extends JPanel {
                     g2D.setColor(Color.WHITE);
                     g2D.setStroke(mediumStreetStroke);
                 }*/
-                prioresUpLines++;
-                g2D.drawLine(trans.toSlaveX(path.getX1(pathElement)), trans.toSlaveY(path.getY1(pathElement)),
-                        trans.toSlaveX(path.getX2(pathElement)), trans.toSlaveY(path.getY2(pathElement)));
+                    prioresUpLines++;
+                    g2D.drawLine(trans.toSlaveX(path.getX1(pathElement)), trans.toSlaveY(path.getY1(pathElement)),
+                            trans.toSlaveX(path.getX2(pathElement)), trans.toSlaveY(path.getY2(pathElement)));
+                }
             }
-        }
-        int prioresDownLines = 0;
-        for (int i = 0; i < bundle.downEdges.length; i++) {
-            RefinedPath path = bundle.downEdges[i].path;
-            for (int pathElement = 0; pathElement < path.size(); pathElement++) {
-                g2D.setColor(Color.RED);
-                g2D.setStroke(mediumStreetStroke);
+
+            int prioresDownLines = 0;
+            for (int i = 0; i < bundle.downEdges.length; i++) {
+                RefinedPath path = bundle.downEdges[i].path;
+                for (int pathElement = 0; pathElement < path.size(); pathElement++) {
+                    g2D.setColor(bundleBaseColor);
+                    g2D.setStroke(mediumStreetStroke);
 
                 /*if (paths.getType(pathElement) <= 2) {
                     g2D.setColor(Color.YELLOW);
@@ -190,17 +196,20 @@ public class ZoomPanel extends JPanel {
                     g2D.setColor(Color.WHITE);
                     g2D.setStroke(mediumStreetStroke);
                 }*/
-                prioresDownLines++;
-                g2D.drawLine(trans.toSlaveX(path.getX1(pathElement)), trans.toSlaveY(path.getY1(pathElement)),
-                        trans.toSlaveX(path.getX2(pathElement)), trans.toSlaveY(path.getY2(pathElement)));
+                    prioresDownLines++;
+                    g2D.drawLine(trans.toSlaveX(path.getX1(pathElement)), trans.toSlaveY(path.getY1(pathElement)),
+                            trans.toSlaveX(path.getX2(pathElement)), trans.toSlaveY(path.getY2(pathElement)));
+                }
             }
+            time1 = System.nanoTime();
+            double prioresTime = (time1 - time0) / 1000000.0;
+            System.out.println("Drew " + core.getEdgeCount() + " coreEdges with " + coreLines + " lines in TIMING: " + coreTime + " ms and\n" +
+                    bundle.upEdges.length + "(" + prioresUpLines + ") PrioRes upEdges and " + bundle.downEdges.length + "(" + prioresDownLines + ") downEdges in TIMING: " + prioresTime + " ms");
+            bundleBaseColor = bundleBaseColor.darker();
         }
-        time1 = System.nanoTime();
-        double prioresTime = (time1 - time0) / 1000000.0;
-        System.out.println("Drew " + core.getEdgeCount() + " coreEdges with " + coreLines + " lines in " + coreTime + " ms and\n" +
-                bundle.upEdges.length + "(" + prioresUpLines + ") PrioRes upEdges and " + bundle.downEdges.length + "(" + prioresDownLines + ") downEdges in " + prioresTime + " ms");
 
-        if(paths != null) {
+
+        if (paths != null) {
             for (RefinedPath path : paths) {
                 for (int pathElement = 0; pathElement < path.size(); pathElement++) {
                     g2D.setColor(Color.BLUE);
@@ -250,7 +259,8 @@ public class ZoomPanel extends JPanel {
     }
 
     private void drawArrow(Graphics2D g2D, int x, int y, int xx, int yy) {
-        if (Math.sqrt((x - xx) * (x - xx) + (y - yy) * (y - yy)) < 20)
+
+        if (Math.hypot(x - xx, y - yy) < 20)
             return;
         int newX = ((x + xx) / 2);
         int newY = ((y + yy) / 2);
@@ -291,7 +301,14 @@ public class ZoomPanel extends JPanel {
 
         try {
             System.err.println("Requesting " + extendedRange);
-            bundle = tp.bbBundleRequest(extendedRange, minPriority);
+            // TODO proper multi bundle management
+            if(bundles.isEmpty()){
+                bundles.add(tp.bbBundleRequest(extendedRange, minPriority));
+            } else {
+                bundles.set(0, tp.bbBundleRequest(extendedRange, minPriority));
+            }
+
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -304,6 +321,7 @@ public class ZoomPanel extends JPanel {
         try {
             setView();
             core = tp.getCore(coreSize);
+            this.router = new Router(core, bundles);
             extractGraph(bbox);
             repaint();
 
@@ -314,12 +332,12 @@ public class ZoomPanel extends JPanel {
     }
 
     private void zoomPanelMousePressed(java.awt.event.MouseEvent evt) {
-        System.out.println("Mouse pressed, Button: "+evt.getButton());
+        System.out.println("Mouse pressed, Button: " + evt.getButton());
         originalX = evt.getX();
         originalY = evt.getY();
         System.out.println("new x y: " + originalX + ", " + originalY);
         Point pointOnCanvas = new Point(evt.getX(), evt.getY());
-        if(evt.getButton() == 3 && area.contains(pointOnCanvas)) {
+        if (evt.getButton() == 3 && area.contains(pointOnCanvas)) {
             addPaintPoint(pointOnCanvas);
         }
     }
@@ -441,19 +459,18 @@ public class ZoomPanel extends JPanel {
 
     public void routeRequested(java.awt.event.ActionEvent evt) {
         System.out.println("Route requested");
-        ArrayList<Bundle> bundles = new ArrayList<Bundle>();
-        bundles.add(bundle);
-        paths = new ArrayDeque<RefinedPath>();
-        Router router = new Router(core, bundles);
-        for(int pointNum = 0; pointNum < points.size()-1; ++pointNum) {
+        paths.clear();
+        for (int pointNum = 0; pointNum < points.size() - 1; ++pointNum) {
             Point pSrc = points.get(pointNum);
-            Point pTrgt = points.get(pointNum+1);
-            try {
-                paths.addAll(router.route(pSrc.x, pSrc.y, pTrgt.x, pTrgt.y));
-
-            } catch (PathNotFoundException e) {
-                JOptionPane.showMessageDialog(null, "Path not found", "Routing unsuccesfull: "+e.getMessage(), JOptionPane.INFORMATION_MESSAGE);
+            Point pTrgt = points.get(pointNum + 1);
+            long start = System.nanoTime();
+            ArrayDeque<RefinedPath> path = (router != null)? router.route(pSrc.x, pSrc.y, pTrgt.x, pTrgt.y) : null;
+            System.out.println(Utils.took("route", start));
+            if (path == null) {
+                JOptionPane.showMessageDialog(null, "Path not found", "Routing unsuccesfull", JOptionPane.INFORMATION_MESSAGE);
+                break;
             }
+            paths.addAll(path);
 
         }
         repaint();
