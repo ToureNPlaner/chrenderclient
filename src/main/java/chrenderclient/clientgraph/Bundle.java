@@ -15,12 +15,14 @@ public class Bundle {
     public final Edge[] downEdges;
     public final Node[] nodes;
     public final int coreSize;
+    public final int level;
 
-    public Bundle(int nodeCount, int upEdgeCount, int downEdgeCount, int coreSize) {
+    public Bundle(int nodeCount, int upEdgeCount, int downEdgeCount, int coreSize, int level) {
         nodes = new Node[nodeCount];
         upEdges = new Edge[upEdgeCount];
         downEdges = new Edge[downEdgeCount];
         this.coreSize = coreSize;
+        this.level = level;
     }
 
 
@@ -30,6 +32,7 @@ public class Bundle {
         int upEdgeCount = -1;
         int downEdgeCount = -1;
         int coreSize = 0;
+        int level = 0;
         RefinedPath path = new RefinedPath();
         if (token != JsonToken.START_OBJECT) {
             throw new JsonParseException("head is no object", jp.getCurrentLocation());
@@ -45,6 +48,8 @@ public class Bundle {
                 downEdgeCount = jp.getIntValue();
             } else if ("coreSize".equals(fieldName)) {
                 coreSize = jp.getIntValue();
+            } else if ("level".equals(fieldName)) {
+                level = jp.getIntValue();
             } else {
                 throw new JsonParseException("Unexpected token " + token, jp.getCurrentLocation());
             }
@@ -54,7 +59,7 @@ public class Bundle {
             throw new JsonParseException("Head not complete", jp.getCurrentLocation());
         }
 
-        return new Bundle(nodeCount, upEdgeCount, downEdgeCount, coreSize);
+        return new Bundle(nodeCount, upEdgeCount, downEdgeCount, coreSize, level);
     }
 
 
