@@ -18,6 +18,8 @@ public final class CoreGraph {
     private int edgeCount;
 
     private int[] offsetOut;
+    private int[] xs;
+    private int[] ys;
 
     private RefinedPath[] paths;
     private int[] srcs;
@@ -28,6 +30,9 @@ public final class CoreGraph {
     public CoreGraph(int nodeCount, int edgeCount) {
         this.nodeCount = nodeCount;
         this.edgeCount = edgeCount;
+
+        this.xs = new int[nodeCount];
+        this.ys = new int[nodeCount];
 
         srcs = new int[edgeCount];
         trgts = new int[edgeCount];
@@ -83,6 +88,15 @@ public final class CoreGraph {
 
     public int getOutEdgeCount(int nodeId) {
         return offsetOut[nodeId+1] - offsetOut[nodeId];
+    }
+
+    public int getX(int nodeId) {return  xs[nodeId];}
+
+    public int getY(int nodeId) {return  ys[nodeId];}
+
+    protected void setNodeCoords(int nodeId, int x, int y) {
+        xs[nodeId] = x;
+        ys[nodeId] = y;
     }
 
     public int getOutEdgeId(int nodeId, int edgeNum) {
@@ -168,6 +182,10 @@ public final class CoreGraph {
                             }
                         }
 
+
+                        if(path.size() > 0) {
+                            result.setNodeCoords(src, path.getX1(0), path.getY1(0));
+                        }
                         result.setEdge(numEdges, src, trgt, cost, oEdgeId, path);
                         numEdges++;
                     }

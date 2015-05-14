@@ -128,7 +128,7 @@ public class ZoomPanel extends JPanel {
         // First paint the core
         final Transformer trans = new Transformer(bbox, area);
         int coreLines = 0;
-        long time0 = System.nanoTime();
+        long start = System.nanoTime();
         if (core == null) {
             System.err.println("core is null");
             return;
@@ -151,15 +151,13 @@ public class ZoomPanel extends JPanel {
                         trans.toSlaveX(path.getX2(pathElement)), trans.toSlaveY(path.getY2(pathElement)));
             }
         }
-
-        long time1 = System.nanoTime();
-        double coreTime = (time1 - time0) / 1000000.0;
+        System.out.println(Utils.took("Drawing Core", start));
 
         if (bundles.isEmpty()) {
             System.err.println("Priores is null");
             return;
         }
-        time0 = System.nanoTime();
+        start = System.nanoTime();
         int prioresUpLines = 0;
         Color bundleBaseColor = Color.YELLOW;
         for (Bundle bundle : bundles) {
@@ -201,10 +199,9 @@ public class ZoomPanel extends JPanel {
                             trans.toSlaveX(path.getX2(pathElement)), trans.toSlaveY(path.getY2(pathElement)));
                 }
             }
-            time1 = System.nanoTime();
-            double prioresTime = (time1 - time0) / 1000000.0;
-            System.out.println("Drew " + core.getEdgeCount() + " coreEdges with " + coreLines + " lines in TIMING: " + coreTime + " ms and\n" +
-                    bundle.upEdges.length + "(" + prioresUpLines + ") PrioRes upEdges and " + bundle.downEdges.length + "(" + prioresDownLines + ") downEdges in TIMING: " + prioresTime + " ms");
+            System.out.println(Utils.took("Drawing Bundles", start));
+            System.out.println("Drew " + core.getEdgeCount() + " coreEdges with " + coreLines + " lines\n" +
+                    bundle.upEdges.length + "(" + prioresUpLines + ") PrioRes upEdges and " + bundle.downEdges.length + "(" + prioresDownLines + ") downEdges");
             bundleBaseColor = bundleBaseColor.darker();
         }
 
@@ -292,7 +289,7 @@ public class ZoomPanel extends JPanel {
     }
 
     private void extractGraph(Rectangle2D.Double range) {
-        long time = System.nanoTime();
+        long start = System.nanoTime();
         Rectangle2D.Double extendedRange = new Rectangle2D.Double();
         extendedRange.x = range.x - (extendFactor - 1) / 2 * range.width;
         extendedRange.y = range.y - (extendFactor - 1) / 2 * range.height;
@@ -312,8 +309,7 @@ public class ZoomPanel extends JPanel {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        long time2 = System.nanoTime();
-        System.out.println("extractGraph: " + (double) (time2 - time) / 1000000.0 + " ms");
+        System.out.println(Utils.took("extractGraph", start));
 
     }
 

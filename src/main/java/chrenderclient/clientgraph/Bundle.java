@@ -16,6 +16,7 @@ public class Bundle {
     public final Node[] nodes;
     public final int coreSize;
     public final int level;
+    private BoundingBox bbox;
 
     public Bundle(int nodeCount, int upEdgeCount, int downEdgeCount, int coreSize, int level) {
         nodes = new Node[nodeCount];
@@ -23,6 +24,7 @@ public class Bundle {
         downEdges = new Edge[downEdgeCount];
         this.coreSize = coreSize;
         this.level = level;
+        this.bbox = null;
     }
 
 
@@ -122,6 +124,11 @@ public class Bundle {
         if (token != JsonToken.START_OBJECT) {
             throw new JsonParseException("edges is no Json object", jp.getCurrentLocation());
         }
+
+        int minX = Integer.MAX_VALUE;
+        int minY = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int maxY = Integer.MIN_VALUE;
         while (jp.nextToken() != JsonToken.END_OBJECT) {
             fieldname = jp.getCurrentName();
             token = jp.nextToken(); // move to value, or
@@ -141,7 +148,12 @@ public class Bundle {
                         currSrc = e.src;
                         int index = currSrc - bundle.coreSize;
                         if(bundle.nodes[index] == null) {
-                            bundle.nodes[index] = new Node(e.path.getX1(0), e.path.getY1(0), currSrc);
+                            Node node = new Node(e.path.getX1(0), e.path.getY1(0), currSrc);
+                            minX = Math.min(minX, node.x);
+                            minY = Math.min(minY, node.y);
+                            maxX = Math.max(maxX, node.x);
+                            maxY = Math.max(maxY, node.y);
+                            bundle.nodes[index] = node;
                         }
                         bundle.nodes[index].upIndex = edgeNum;
                     }
@@ -167,7 +179,12 @@ public class Bundle {
                         currTrgt = e.trgt;
                         int index = currTrgt - bundle.coreSize;
                         if(bundle.nodes[index] == null) {
-                            bundle.nodes[index] = new Node(e.path.getX1(e.path.size() - 1), e.path.getY1(e.path.size() - 1), currTrgt);
+                            Node node = new Node(e.path.getX1(e.path.size() - 1), e.path.getY1(e.path.size() - 1), currTrgt);
+                            minX = Math.min(minX, node.x);
+                            minY = Math.min(minY, node.y);
+                            maxX = Math.max(maxX, node.x);
+                            maxY = Math.max(maxY, node.y);
+                            bundle.nodes[index] = node;
                         }
                         bundle.nodes[index].downIndex = edgeNum;
                     }
@@ -179,5 +196,10 @@ public class Bundle {
                 }
             }
         }
+        bundle.bbox = new BoundingBox(minX, minY, maxX-minX, maxY-minY);
+    }
+
+    public BoundingBox getBbox() {
+        return bbox;
     }
 }

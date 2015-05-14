@@ -1,7 +1,8 @@
 package chrenderclient;
 
-import chrenderclient.clientgraph.CoreGraph;
 import chrenderclient.clientgraph.Bundle;
+import chrenderclient.clientgraph.CoreGraph;
+import chrenderclient.clientgraph.Utils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.smile.SmileFactory;
 import org.apache.http.HttpEntity;
@@ -100,10 +101,9 @@ public class TPClient {
         try {
             System.out.println(response1.getStatusLine());
             HttpEntity resEntity = response1.getEntity();
-            long time0 = System.nanoTime();
+            long start = System.nanoTime();
             res = Bundle.readResultData(mapper, new BufferedInputStream(resEntity.getContent()));
-            long time1 = System.nanoTime();
-            System.out.println("Reading took "+(time1-time0)/1000000.0+" ms");
+            System.out.println(Utils.took("Reading Bundles", start));
             // do something useful with the response body
             // and ensure it is fully consumed
             EntityUtils.consume(resEntity);
