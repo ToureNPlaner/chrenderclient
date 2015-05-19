@@ -136,16 +136,16 @@ public class ZoomPanel extends JPanel {
         for (int i = 0; i < core.getEdgeCount(); i++) {
             RefinedPath path = core.getRefinedPath(i);
             for (int pathElement = 0; pathElement < path.size(); pathElement++) {
-                g2D.setColor(Color.LIGHT_GRAY);
-                g2D.setStroke(smallStreetStroke);
+                g2D.setColor(Color.getHSBColor(0.7f, path.getType(pathElement), 1.0f));
+                g2D.setStroke(largeStreetStroke);
 
-                if (path.getType(pathElement) <= 2) {
+                /*if (path.getType(pathElement) <= 2) {
                     g2D.setColor(Color.GREEN);
                     g2D.setStroke(largeStreetStroke);
                 } else if (path.getType(pathElement) <= 9) {
                     g2D.setColor(Color.BLUE);
                     g2D.setStroke(mediumStreetStroke);
-                }
+                }*/
                 coreLines++;
                 g2D.drawLine(trans.toSlaveX(path.getX1(pathElement)), trans.toSlaveY(path.getY1(pathElement)),
                         trans.toSlaveX(path.getX2(pathElement)), trans.toSlaveY(path.getY2(pathElement)));
@@ -159,12 +159,11 @@ public class ZoomPanel extends JPanel {
         }
         start = System.nanoTime();
         int prioresUpLines = 0;
-        Color bundleBaseColor = Color.YELLOW;
         for (Bundle bundle : bundles) {
             for (int i = 0; i < bundle.upEdges.length; i++) {
                 RefinedPath path = bundle.upEdges[i].path;
                 for (int pathElement = 0; pathElement < path.size(); pathElement++) {
-                    g2D.setColor(bundleBaseColor);
+                    g2D.setColor(Color.getHSBColor(0.7f, path.getType(pathElement), 1.0f));
                     g2D.setStroke(mediumStreetStroke);
 
                 /*if (paths.getType(pathElement) <= 2) {
@@ -184,7 +183,7 @@ public class ZoomPanel extends JPanel {
             for (int i = 0; i < bundle.downEdges.length; i++) {
                 RefinedPath path = bundle.downEdges[i].path;
                 for (int pathElement = 0; pathElement < path.size(); pathElement++) {
-                    g2D.setColor(bundleBaseColor);
+                    g2D.setColor(Color.getHSBColor(0.7f, path.getType(pathElement), 1.0f));
                     g2D.setStroke(mediumStreetStroke);
 
                 /*if (paths.getType(pathElement) <= 2) {
@@ -202,7 +201,7 @@ public class ZoomPanel extends JPanel {
             System.out.println(Utils.took("Drawing Bundles", start));
             System.out.println("Drew " + core.getEdgeCount() + " coreEdges with " + coreLines + " lines\n" +
                     bundle.upEdges.length + "(" + prioresUpLines + ") PrioRes upEdges and " + bundle.downEdges.length + "(" + prioresDownLines + ") downEdges");
-            bundleBaseColor = bundleBaseColor.darker();
+            //bundleBaseColor = bundleBaseColor.darker();
         }
 
 

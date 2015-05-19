@@ -1,5 +1,6 @@
 package chrenderclient.clientgraph;
 
+import com.carrotsearch.hppc.FloatArrayList;
 import com.carrotsearch.hppc.IntArrayList;
 
 /**
@@ -10,14 +11,14 @@ public class RefinedPath {
     private final IntArrayList y1;
     private final IntArrayList x2;
     private final IntArrayList y2;
-    private final IntArrayList type;
+    private final FloatArrayList type;
 
     public RefinedPath() {
         x1 = new IntArrayList();
         y1 = new IntArrayList();
         x2 = new IntArrayList();
         y2 = new IntArrayList();
-        type = new IntArrayList();
+        type = new FloatArrayList();
     }
 
     public int size() {
@@ -55,11 +56,11 @@ public class RefinedPath {
         y2.set(pos, val);
     }
 
-    public int getType(int pos) {
+    public float getType(int pos) {
         return type.get(pos);
     }
 
-    public void add(int x1, int y1, int x2, int y2, int type) {
+    public void add(int x1, int y1, int x2, int y2, float type) {
         this.x1.add(x1);
         this.y1.add(y1);
         this.x2.add(x2);

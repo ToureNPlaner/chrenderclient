@@ -169,7 +169,14 @@ public final class CoreGraph {
 
                                 while (jp.nextToken() != JsonToken.END_ARRAY) {
                                     // TODO Error checking i.e. for too few parameters would be kinda nice
-                                    path.add(jp.getIntValue(), jp.nextIntValue(0), jp.nextIntValue(0), jp.nextIntValue(0), jp.nextIntValue(0));
+                                    int srcX = jp.getIntValue();
+                                    int srcY = jp.nextIntValue(0);
+                                    int trgtX = jp.nextIntValue(0);
+                                    int trgtY = jp.nextIntValue(0);
+                                    // No nextFloatValue ?
+                                    jp.nextToken();
+                                    float type = jp.getFloatValue();
+                                    path.add(srcX, srcY, trgtX, trgtY, type);
                                 }
                             } else if ("src".equals(fieldname)) {
                                 src = jp.getIntValue();

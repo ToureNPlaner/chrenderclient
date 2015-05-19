@@ -48,7 +48,15 @@ public final class Edge {
 
                 while (jp.nextToken() != JsonToken.END_ARRAY) {
                     // TODO Error checking i.e. for too few parameters would be kinda nice
-                    path.add(jp.getIntValue(), jp.nextIntValue(0), jp.nextIntValue(0), jp.nextIntValue(0), jp.nextIntValue(0));
+                    int srcX = jp.getIntValue();
+                    int srcY = jp.nextIntValue(0);
+                    int trgtX = jp.nextIntValue(0);
+                    int trgtY = jp.nextIntValue(0);
+                    // No nextFloatValue ?
+                    jp.nextToken();
+                    float type = jp.getFloatValue();
+                    path.add(srcX, srcY, trgtX, trgtY, type);
+                    System.err.println("Should be float: " + jp.getFloatValue() + " is numeric? " + jp.getCurrentToken().isNumeric());
                 }
             } else {
                 throw new JsonParseException("Unexpected token " + token, jp.getCurrentLocation());

@@ -67,7 +67,7 @@ public class Router {
         this.bestPath = null;
         findSourceAndTarget(srcX, srcY, trgtX, trgtY);
         System.out.println(Utils.took("finding ids", start));
-        System.out.println("srcId: "+srcId+" trgtId: "+trgtId);
+        System.out.println("srcId: "+srcId+((srcBundle != null)?" (bundle)":"")+" trgtId: "+trgtId+((trgtBundle != null)?" (bundle)":""));
         // Scan upGraph
         int[] upDists = null;
         int[] upPreds = null;
