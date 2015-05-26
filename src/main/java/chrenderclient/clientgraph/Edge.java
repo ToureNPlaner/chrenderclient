@@ -56,7 +56,6 @@ public final class Edge {
                     jp.nextToken();
                     float type = jp.getFloatValue();
                     path.add(srcX, srcY, trgtX, trgtY, type);
-                    System.err.println("Should be float: " + jp.getFloatValue() + " is numeric? " + jp.getCurrentToken().isNumeric());
                 }
             } else {
                 throw new JsonParseException("Unexpected token " + token, jp.getCurrentLocation());

@@ -22,21 +22,29 @@ public class Transformer {
         scale = Math.max(scaleWidth, scaleHeight);
     }
 
+    public int toMasterDist(int d) {
+        return (int) (d*scale);
+    }
+
+    public int toSlaveDist(int d) {
+        return (int) (d/scale);
+    }
+
 
     public int toSlaveX(int x) {
-        return (int)((x - master.x) / scale + slave.x);
+        return (int) ((x - master.x) / scale + slave.x);
     }
 
     public int toSlaveY(int y) {
-        return (int)((y - master.y) / scale + slave.y);
+        return (int) ((y - master.y) / scale + slave.y);
     }
 
     public int toMasterX(int x) {
-        return (int)(master.x+(x-slave.x)*scale);
+        return (int) (master.x + (x - slave.x) * scale);
     }
 
     public int toMasterY(int y) {
-        return (int)(master.y+(y-slave.y)*scale);
+        return (int) (master.y + (y - slave.y) * scale);
     }
 
 }

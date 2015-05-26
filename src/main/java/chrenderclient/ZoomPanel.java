@@ -25,7 +25,7 @@ import java.util.logging.Logger;
 public class ZoomPanel extends JPanel {
 
     public static final long serialVersionUID = 1;
-    private Rectangle2D.Double area = new Rectangle2D.Double(17, 44, 302, 469);
+    private Rectangle2D.Double drawArea = new Rectangle2D.Double(17, 44, 302, 469);
 
     private ArrayList<Bundle> bundles;
     private Router router;
@@ -42,7 +42,8 @@ public class ZoomPanel extends JPanel {
     private int originalX = -1;
     private int originalY = -1;
 
-
+    private int minLen = 4;
+    private int maxLen = 400;
     public int minPriority = 0;
     private boolean justDragged = false;
 
@@ -89,12 +90,12 @@ public class ZoomPanel extends JPanel {
         });
 
         this.setPreferredSize(new Dimension(1800, 900));
-        this.area = new Rectangle2D.Double(0, 0, 1800, 900);
+        this.drawArea = new Rectangle2D.Double(0, 0, 1800, 900);
         setView();
     }
 
     public void addPaintPoint(Point point) {
-        final Transformer trans = new Transformer(bbox, area);
+        final Transformer trans = new Transformer(bbox, drawArea);
         point = new Point(trans.toMasterX(point.x), trans.toMasterY(point.y));
         paintPoint(point, this.getGraphics());
         points.add(point);
@@ -113,7 +114,7 @@ public class ZoomPanel extends JPanel {
         g.clearRect(0, 0, getWidth(), getHeight());
         g.setColor(new Color(255, 205, 205));
 
-        g.fillRect((int) area.getX(), (int) area.getY(), (int) area.getWidth(), (int) area.getHeight());
+        g.fillRect((int) drawArea.getX(), (int) drawArea.getY(), (int) drawArea.getWidth(), (int) drawArea.getHeight());
         paintMap(g);
         for (Point p : points) {
             paintPoint(p, g);
@@ -126,7 +127,7 @@ public class ZoomPanel extends JPanel {
         //g2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
         //        RenderingHints.VALUE_ANTIALIAS_ON);
         // First paint the core
-        final Transformer trans = new Transformer(bbox, area);
+        final Transformer trans = new Transformer(bbox, drawArea);
         int coreLines = 0;
         long start = System.nanoTime();
         if (core == null) {
@@ -208,7 +209,7 @@ public class ZoomPanel extends JPanel {
         if (paths != null) {
             for (RefinedPath path : paths) {
                 for (int pathElement = 0; pathElement < path.size(); pathElement++) {
-                    g2D.setColor(Color.BLUE);
+                    g2D.setColor(Color.RED);
                     g2D.setStroke(largeStreetStroke);
                     g2D.drawLine(trans.toSlaveX(path.getX1(pathElement)), trans.toSlaveY(path.getY1(pathElement)),
                             trans.toSlaveX(path.getX2(pathElement)), trans.toSlaveY(path.getY2(pathElement)));
@@ -218,7 +219,7 @@ public class ZoomPanel extends JPanel {
     }
 
     private void paintPoint(Point point, Graphics g) {
-        final Transformer trans = new Transformer(bbox, area);
+        final Transformer trans = new Transformer(bbox, drawArea);
         g.setColor(Color.BLUE);
         g.drawRect(trans.toSlaveX((int) point.getX()), trans.toSlaveY((int) point.getY()), 2, 2);
     }
@@ -227,7 +228,7 @@ public class ZoomPanel extends JPanel {
         BufferedImage img = new BufferedImage(this.getWidth(), this.getHeight(), BufferedImage.TYPE_INT_ARGB);
         Graphics g = img.getGraphics();
         g.setColor(new Color(255, 205, 205));
-        g.fillRect((int) area.getX(), (int) area.getY(), (int) area.getWidth(), (int) area.getHeight());
+        g.fillRect((int) drawArea.getX(), (int) drawArea.getY(), (int) drawArea.getWidth(), (int) drawArea.getHeight());
         Graphics2D g2D = (Graphics2D) g;
         g2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                 RenderingHints.VALUE_ANTIALIAS_ON);
@@ -237,19 +238,19 @@ public class ZoomPanel extends JPanel {
 
     public void paintRectangleSelectionTool(Graphics g) {
         g.setColor(Color.PINK);
-        g.drawRect((int) (area.width + area.x - 30), (int) (area.y + 10), 20, 20);
+        g.drawRect((int) (drawArea.width + drawArea.x - 30), (int) (drawArea.y + 10), 20, 20);
         g.setColor(Color.BLACK);
-        g.drawString("R", (int) (area.width + area.x - 23), (int) area.y + 25);
+        g.drawString("R", (int) (drawArea.width + drawArea.x - 23), (int) drawArea.y + 25);
     }
 
     boolean clickedOnRectangleSelection(int x, int y) {
-        if (x < area.width + area.x - 30)
+        if (x < drawArea.width + drawArea.x - 30)
             return false;
-        if (x > area.width + area.x - 10)
+        if (x > drawArea.width + drawArea.x - 10)
             return false;
-        if (y < area.y + 10)
+        if (y < drawArea.y + 10)
             return false;
-        if (y > area.y + 30)
+        if (y > drawArea.y + 30)
             return false;
         return true;
     }
@@ -298,10 +299,11 @@ public class ZoomPanel extends JPanel {
         try {
             System.err.println("Requesting " + extendedRange);
             // TODO proper multi bundle management
+            final Transformer t = new Transformer(bbox, drawArea);
             if(bundles.isEmpty()){
-                bundles.add(tp.bbBundleRequest(extendedRange, minPriority));
+                bundles.add(tp.bbBundleRequest(extendedRange, minPriority, t.toMasterDist(minLen), t.toMasterDist(maxLen), 0.01));
             } else {
-                bundles.set(0, tp.bbBundleRequest(extendedRange, minPriority));
+                bundles.set(0, tp.bbBundleRequest(extendedRange, minPriority, t.toMasterDist(minLen), t.toMasterDist(maxLen), 0.01));
             }
 
 
@@ -315,7 +317,8 @@ public class ZoomPanel extends JPanel {
     public void loadCore() {
         try {
             setView();
-            core = tp.getCore(coreSize);
+            final Transformer t = new Transformer(bbox, drawArea);
+            core = tp.getCore(coreSize, t.toMasterDist(minLen), t.toMasterDist(maxLen), 0.01);
             this.router = new Router(core, bundles);
             extractGraph(bbox);
             repaint();
@@ -332,26 +335,28 @@ public class ZoomPanel extends JPanel {
         originalY = evt.getY();
         System.out.println("new x y: " + originalX + ", " + originalY);
         Point pointOnCanvas = new Point(evt.getX(), evt.getY());
-        if (evt.getButton() == 3 && area.contains(pointOnCanvas)) {
+        if (evt.getButton() == 3 && drawArea.contains(pointOnCanvas)) {
             addPaintPoint(pointOnCanvas);
         }
     }
 
     private void zoomPanelMouseReleased(java.awt.event.MouseEvent evt) {
         System.out.println("Mouse released");
-        if (!area.contains(new Point(evt.getX(), evt.getY()))) {
+        if (!drawArea.contains(new Point(evt.getX(), evt.getY()))) {
             return;
         }
         int dx = evt.getX() - originalX;
         int dy = evt.getY() - originalY;
-        double factor = bbox.getWidth() / area.width;
+
         extractGraph(bbox);
         if (dx == 0 && dy == 0 && !justDragged) {
             return;
         }
         justDragged = false;
-        dx = (int) (dx * factor);
-        dy = (int) (dy * factor);
+        final Transformer t = new Transformer(bbox, drawArea);
+        dx = t.toMasterDist(dx);
+        dy = t.toMasterDist(dy);
+
         System.out.println("deltas: " + dx + ", " + dy);
 
         bbox.x -= dx;
@@ -363,27 +368,23 @@ public class ZoomPanel extends JPanel {
         System.out.println("Mouse wheel moved");
         int notches = evt.getWheelRotation();
         System.out.println("notch: " + notches);
-        double x = evt.getX() - xBorder;
-        double y = evt.getY() - yBorder;
-        System.out.println("pos: " + x + ", " + y);
-        double factor = bbox.getWidth() / area.width;
+        int dx = evt.getX() - xBorder;
+        int dy = evt.getY() - yBorder;
+
+        Transformer t = new Transformer(bbox, drawArea);
+        dx = t.toMasterDist(dx);
+        dy = t.toMasterDist(dy);
+        System.out.println("pos: " + dx + ", " + dy);
 
         if (notches > 0) {
-            // TODO translate points
-            x = x * factor;
-            y = y * factor;
-            bbox.x -= (changeFactor - 1) * x;
-            bbox.y -= (changeFactor - 1) * y;
+            bbox.x -= (changeFactor - 1) * dx;
+            bbox.y -= (changeFactor - 1) * dy;
             bbox.width *= changeFactor;
             bbox.height *= changeFactor;
         } else {
-
             if (bbox.width > 100 && bbox.height > 100) {
-                // TODO translate points
-                x = x * factor;
-                y = y * factor;
-                bbox.x += x * (1 - 1.0 / changeFactor);
-                bbox.y += y * (1 - 1.0 / changeFactor);
+                bbox.x += dx * (1 - 1.0 / changeFactor);
+                bbox.y += dy * (1 - 1.0 / changeFactor);
                 bbox.width = bbox.width / changeFactor;
                 bbox.height = bbox.height / changeFactor;
             }
@@ -429,7 +430,7 @@ public class ZoomPanel extends JPanel {
 
     private void zoomPanelMouseDragged(java.awt.event.MouseEvent evt) {
 
-        if (!area.contains(new Point(evt.getX(), evt.getY()))) {
+        if (!drawArea.contains(new Point(evt.getX(), evt.getY()))) {
             return;
         }
         System.out.println("Mouse dragged");
@@ -439,9 +440,9 @@ public class ZoomPanel extends JPanel {
             return;
         }
 
-        double factor = bbox.getWidth() / area.width;
-        dx = (int) (dx * factor);
-        dy = (int) (dy * factor);
+        final Transformer t = new Transformer(bbox, drawArea);
+        dx = t.toMasterDist(dx);
+        dy = t.toMasterDist(dy);
         System.out.println("deltas: " + dx + ", " + dy);
 
         bbox.x -= dx;

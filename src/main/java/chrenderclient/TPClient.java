@@ -35,28 +35,29 @@ public class TPClient {
         this.mapper = new ObjectMapper(new SmileFactory());
     }
 
-    public CoreGraph getCore(int coreSize) throws IOException{
+    public CoreGraph getCore(int coreSize, int minLen, int maxLen, double maxRatio) throws IOException{
+        // TODO reget core if minLen etc change?
         // In the future we need to check that the core matches the graph
         // on the server if we store cores for longer
         if (core != null && core.getNodeCount() == coreSize) {
             return core;
         }
 
-        core = coreRequest(coreSize);
+        core = coreRequest(coreSize, minLen, maxLen, maxRatio);
 
         return core;
     }
 
-    private CoreGraph coreRequest(int nodeCount) throws IOException{
+    private CoreGraph coreRequest(int nodeCount, int minLen, int maxLen, double maxRatio) throws IOException{
         CoreGraph res = null;
         HttpPost httpPost = new HttpPost(this.uri + "/algdrawcore");
         httpPost.addHeader("Accept", "application/x-jackson-smile");
-        String bS = "{\"nodeCount\":" +nodeCount+"}";
+        String bS = "{\"nodeCount\":" +nodeCount+",\"minLen\":"+minLen+",\"maxLen\":"+maxLen+",\"maxRatio\":"+maxRatio+"1}";
         System.err.println(bS);
         byte[] b = bS.getBytes("UTF-8");
         HttpEntity body = new ByteArrayEntity(b, ContentType.APPLICATION_JSON);
         httpPost.setEntity(body);
-        CloseableHttpResponse response1 = httpClient.execute(httpPost);
+        CloseableHttpResponse response = httpClient.execute(httpPost);
         // The underlying HTTP connection is still held by the response object
         // to allow the response content to be streamed directly from the network socket.
         // In order to ensure correct deallocation of system resources
@@ -65,32 +66,33 @@ public class TPClient {
         // connection cannot be safely re-used and will be shut down and discarded
         // by the connection manager.
         try {
-            System.out.println(response1.getStatusLine());
-            HttpEntity resEntity = response1.getEntity();
+            System.out.println(response.getStatusLine());
+            HttpEntity resEntity = response.getEntity();
+            System.out.println("Core has size:"+Utils.sizeForHumans(resEntity.getContentLength()));
             res = CoreGraph.readJSON(mapper, resEntity.getContent());
             // do something useful with the response body
             // and ensure it is fully consumed
             EntityUtils.consume(resEntity);
         } finally {
-            response1.close();
+            response.close();
         }
         return res;
     }
 
-    public Bundle bbBundleRequest(Rectangle2D.Double range, int minPrio) throws IOException {
+    public Bundle bbBundleRequest(Rectangle2D.Double range, int minPrio, int minLen, int maxLen, double maxRatio) throws IOException {
         Bundle res = null;
         HttpPost httpPost = new HttpPost(this.uri + "/algbbbundle");
         httpPost.addHeader("Accept", "application/x-jackson-smile");
         String bS = "{\"bbox\":" +
                 "{\"x\":" + range.getX() + ",\"y\":" + range.getY() +
                 ",\"width\":" + range.getWidth() + ",\"height\":" + range.getHeight() + "}," +
-                "\"nodeCount\":1000,\"mode\":\"exact\",\"level\":"+minPrio+",\"minLen\":2,\"maxLen\":40,\"maxRatio\":0.01, " +
+                "\"nodeCount\":1000,\"mode\":\"exact\",\"level\":"+minPrio+",\"minLen\":"+minLen+",\"maxLen\":"+maxLen+",\"maxRatio\":"+maxRatio+", " +
                 "\"coreSize\" : "+((core != null)?core.getNodeCount():0)+"}";
         System.err.println(bS);
         byte[] b = bS.getBytes("UTF-8");
         HttpEntity body = new ByteArrayEntity(b, ContentType.APPLICATION_JSON);
         httpPost.setEntity(body);
-        CloseableHttpResponse response1 = httpClient.execute(httpPost);
+        CloseableHttpResponse response = httpClient.execute(httpPost);
         // The underlying HTTP connection is still held by the response object
         // to allow the response content to be streamed directly from the network socket.
         // In order to ensure correct deallocation of system resources
@@ -99,8 +101,9 @@ public class TPClient {
         // connection cannot be safely re-used and will be shut down and discarded
         // by the connection manager.
         try {
-            System.out.println(response1.getStatusLine());
-            HttpEntity resEntity = response1.getEntity();
+            System.out.println(response.getStatusLine());
+            HttpEntity resEntity = response.getEntity();
+            System.out.println("Bundle has size:"+Utils.sizeForHumans(resEntity.getContentLength()));
             long start = System.nanoTime();
             res = Bundle.readResultData(mapper, new BufferedInputStream(resEntity.getContent()));
             System.out.println(Utils.took("Reading Bundles", start));
@@ -108,7 +111,7 @@ public class TPClient {
             // and ensure it is fully consumed
             EntityUtils.consume(resEntity);
         } finally {
-            response1.close();
+            response.close();
         }
         return res;
     }
