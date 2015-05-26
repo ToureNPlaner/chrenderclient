@@ -25,30 +25,13 @@ public class TPClient {
     private CloseableHttpClient httpClient;
     private String uri;
     private ObjectMapper mapper;
-
-    private CoreGraph core;
-
     public TPClient(String uri) {
         httpClient = HttpClients.createDefault();
         this.uri = uri;
-        this.core = null;;
         this.mapper = new ObjectMapper(new SmileFactory());
     }
 
-    public CoreGraph getCore(int coreSize, int minLen, int maxLen, double maxRatio) throws IOException{
-        // TODO reget core if minLen etc change?
-        // In the future we need to check that the core matches the graph
-        // on the server if we store cores for longer
-        if (core != null && core.getNodeCount() == coreSize) {
-            return core;
-        }
-
-        core = coreRequest(coreSize, minLen, maxLen, maxRatio);
-
-        return core;
-    }
-
-    private CoreGraph coreRequest(int nodeCount, int minLen, int maxLen, double maxRatio) throws IOException{
+    public CoreGraph coreRequest(int nodeCount, int minLen, int maxLen, double maxRatio) throws IOException{
         CoreGraph res = null;
         HttpPost httpPost = new HttpPost(this.uri + "/algdrawcore");
         httpPost.addHeader("Accept", "application/x-jackson-smile");
@@ -79,7 +62,7 @@ public class TPClient {
         return res;
     }
 
-    public Bundle bbBundleRequest(Rectangle2D.Double range, int minPrio, int minLen, int maxLen, double maxRatio) throws IOException {
+    public Bundle bbBundleRequest(Rectangle2D.Double range, int coreSize, int minPrio, int minLen, int maxLen, double maxRatio) throws IOException {
         Bundle res = null;
         HttpPost httpPost = new HttpPost(this.uri + "/algbbbundle");
         httpPost.addHeader("Accept", "application/x-jackson-smile");
@@ -87,7 +70,7 @@ public class TPClient {
                 "{\"x\":" + range.getX() + ",\"y\":" + range.getY() +
                 ",\"width\":" + range.getWidth() + ",\"height\":" + range.getHeight() + "}," +
                 "\"nodeCount\":1000,\"mode\":\"exact\",\"level\":"+minPrio+",\"minLen\":"+minLen+",\"maxLen\":"+maxLen+",\"maxRatio\":"+maxRatio+", " +
-                "\"coreSize\" : "+((core != null)?core.getNodeCount():0)+"}";
+                "\"coreSize\" : "+coreSize+"}";
         System.err.println(bS);
         byte[] b = bS.getBytes("UTF-8");
         HttpEntity body = new ByteArrayEntity(b, ContentType.APPLICATION_JSON);

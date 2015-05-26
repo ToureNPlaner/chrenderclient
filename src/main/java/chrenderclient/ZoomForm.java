@@ -36,7 +36,7 @@ public class ZoomForm extends javax.swing.JFrame {
      * @param tp
      */
     public ZoomForm(TPClient tp) {
-        coreSize = 100;
+        coreSize = 1000;
         this.tp = tp;
         initComponents();
         Dimension dim = new Dimension(1900, 1000);
@@ -62,7 +62,7 @@ public class ZoomForm extends javax.swing.JFrame {
         fixedMinPrioLabel = new javax.swing.JLabel();
         MenuBar = new javax.swing.JMenuBar();
         ImportMenu = new javax.swing.JMenu();
-        LoadGraphItem = new javax.swing.JMenuItem();
+        LoadCoreItem = new javax.swing.JMenuItem();
         ExportMenu = new javax.swing.JMenu();
         SaveImageItem = new javax.swing.JMenuItem();
         SelectionMenu = new javax.swing.JMenu();
@@ -73,9 +73,6 @@ public class ZoomForm extends javax.swing.JFrame {
         OptionMenu = new javax.swing.JMenu();
         ShowPriorityNodesMenuItem = new javax.swing.JMenuItem();
         TestMenu = new javax.swing.JMenu();
-        RangeTreeTestMenuItem = new javax.swing.JMenuItem();
-        PstTestMenuItem = new javax.swing.JMenuItem();
-        GridTestMenuItem = new javax.swing.JMenuItem();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
@@ -84,7 +81,7 @@ public class ZoomForm extends javax.swing.JFrame {
         prioritySlider.setMajorTickSpacing(5);
         prioritySlider.setPaintLabels(true);
         prioritySlider.setMinimum(0);
-        prioritySlider.setMaximum(100);
+        prioritySlider.setMaximum(400);
         prioritySlider.setSnapToTicks(false);
         prioritySlider.setPaintTicks(true);
         prioritySlider.addChangeListener(new javax.swing.event.ChangeListener() {
@@ -115,13 +112,13 @@ public class ZoomForm extends javax.swing.JFrame {
 
         ImportMenu.setText("Import");
 
-        LoadGraphItem.setText("Load Graph");
-        LoadGraphItem.addActionListener(new java.awt.event.ActionListener() {
+        LoadCoreItem.setText("Load Core only");
+        LoadCoreItem.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 LoadGraphItemActionPerformed(evt);
             }
         });
-        ImportMenu.add(LoadGraphItem);
+        ImportMenu.add(LoadCoreItem);
 
         MenuBar.add(ImportMenu);
 
@@ -257,7 +254,7 @@ public class ZoomForm extends javax.swing.JFrame {
      * @param args the command line arguments
      */
     public static void main(String args[]) {
-        final TPClient tp = new TPClient("http://localhost:8080");
+        final TPClient tp = new TPClient("http://plankton:8080");
 	    /* Set the Nimbus look and feel */
         //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
         /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
@@ -305,19 +302,14 @@ public class ZoomForm extends javax.swing.JFrame {
     private javax.swing.JMenuItem ClearMarkerMenuItem;
     private javax.swing.JMenu DisplayMenu;
     private javax.swing.JMenu ExportMenu;
-    private javax.swing.JMenuItem GridTestMenuItem;
     private javax.swing.JMenu ImportMenu;
-    private javax.swing.JMenuItem LoadGraphItem;
+    private javax.swing.JMenuItem LoadCoreItem;
     private javax.swing.JMenuBar MenuBar;
     private javax.swing.JMenu OptionMenu;
-    private javax.swing.JMenuItem PstTestMenuItem;
-    private javax.swing.JMenuItem RangeTreeTestMenuItem;
     private javax.swing.JMenuItem RunDijkstraMenuItem;
     private javax.swing.JMenuItem SaveImageItem;
     private javax.swing.JMenu SelectionMenu;
     private javax.swing.JMenuItem ShowPriorityNodesMenuItem;
-    private javax.swing.JMenuItem SmartPhoneMenuItem;
-    private javax.swing.JMenuItem TabletMenuItem;
     private javax.swing.JMenu TestMenu;
     private javax.swing.JMenuItem UndoLastMarkerMenuItem;
     private javax.swing.JLabel fixedMinPrioLabel;

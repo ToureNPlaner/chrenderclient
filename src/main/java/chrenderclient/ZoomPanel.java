@@ -42,8 +42,8 @@ public class ZoomPanel extends JPanel {
     private int originalX = -1;
     private int originalY = -1;
 
-    private int minLen = 4;
-    private int maxLen = 400;
+    private int minLen = 10;
+    private int maxLen = 40;
     public int minPriority = 0;
     private boolean justDragged = false;
 
@@ -137,19 +137,16 @@ public class ZoomPanel extends JPanel {
         for (int i = 0; i < core.getEdgeCount(); i++) {
             RefinedPath path = core.getRefinedPath(i);
             for (int pathElement = 0; pathElement < path.size(); pathElement++) {
-                g2D.setColor(Color.getHSBColor(0.7f, path.getType(pathElement), 1.0f));
-                g2D.setStroke(largeStreetStroke);
-
-                /*if (path.getType(pathElement) <= 2) {
-                    g2D.setColor(Color.GREEN);
+                int x1 = trans.toSlaveX(path.getX1(pathElement));
+                int y1 = trans.toSlaveY(path.getY1(pathElement));
+                int x2 = trans.toSlaveX(path.getX2(pathElement));
+                int y2 = trans.toSlaveY(path.getY2(pathElement));
+                if (drawArea.contains(x1, y1) || drawArea.contains(x2, y2)) {
+                    g2D.setColor(Color.getHSBColor(0.7f, path.getType(pathElement), 1.0f));
                     g2D.setStroke(largeStreetStroke);
-                } else if (path.getType(pathElement) <= 9) {
-                    g2D.setColor(Color.BLUE);
-                    g2D.setStroke(mediumStreetStroke);
-                }*/
-                coreLines++;
-                g2D.drawLine(trans.toSlaveX(path.getX1(pathElement)), trans.toSlaveY(path.getY1(pathElement)),
-                        trans.toSlaveX(path.getX2(pathElement)), trans.toSlaveY(path.getY2(pathElement)));
+                    coreLines++;
+                    g2D.drawLine(x1, y1, x2, y2);
+                }
             }
         }
         System.out.println(Utils.took("Drawing Core", start));
@@ -164,19 +161,17 @@ public class ZoomPanel extends JPanel {
             for (int i = 0; i < bundle.upEdges.length; i++) {
                 RefinedPath path = bundle.upEdges[i].path;
                 for (int pathElement = 0; pathElement < path.size(); pathElement++) {
-                    g2D.setColor(Color.getHSBColor(0.7f, path.getType(pathElement), 1.0f));
-                    g2D.setStroke(mediumStreetStroke);
+                    int x1 = trans.toSlaveX(path.getX1(pathElement));
+                    int y1 = trans.toSlaveY(path.getY1(pathElement));
+                    int x2 = trans.toSlaveX(path.getX2(pathElement));
+                    int y2 = trans.toSlaveY(path.getY2(pathElement));
+                    if (drawArea.contains(x1, y1) || drawArea.contains(x2, y2)) {
+                        g2D.setColor(Color.getHSBColor(0.7f, path.getType(pathElement), 1.0f));
+                        g2D.setStroke(mediumStreetStroke);
 
-                /*if (paths.getType(pathElement) <= 2) {
-                    g2D.setColor(Color.YELLOW);
-                    g2D.setStroke(largeStreetStroke);
-                } else if (paths.getType(pathElement) <= 9) {
-                    g2D.setColor(Color.WHITE);
-                    g2D.setStroke(mediumStreetStroke);
-                }*/
-                    prioresUpLines++;
-                    g2D.drawLine(trans.toSlaveX(path.getX1(pathElement)), trans.toSlaveY(path.getY1(pathElement)),
-                            trans.toSlaveX(path.getX2(pathElement)), trans.toSlaveY(path.getY2(pathElement)));
+                        prioresUpLines++;
+                        g2D.drawLine(x1, y1, x2, y2);
+                    }
                 }
             }
 
@@ -184,19 +179,18 @@ public class ZoomPanel extends JPanel {
             for (int i = 0; i < bundle.downEdges.length; i++) {
                 RefinedPath path = bundle.downEdges[i].path;
                 for (int pathElement = 0; pathElement < path.size(); pathElement++) {
-                    g2D.setColor(Color.getHSBColor(0.7f, path.getType(pathElement), 1.0f));
-                    g2D.setStroke(mediumStreetStroke);
+                    int x1 = trans.toSlaveX(path.getX1(pathElement));
+                    int y1 = trans.toSlaveY(path.getY1(pathElement));
+                    int x2 = trans.toSlaveX(path.getX2(pathElement));
+                    int y2 = trans.toSlaveY(path.getY2(pathElement));
+                    if (drawArea.contains(x1, y1) || drawArea.contains(x2, y2)) {
 
-                /*if (paths.getType(pathElement) <= 2) {
-                    g2D.setColor(Color.YELLOW);
-                    g2D.setStroke(largeStreetStroke);
-                } else if (paths.getType(pathElement) <= 9) {
-                    g2D.setColor(Color.WHITE);
-                    g2D.setStroke(mediumStreetStroke);
-                }*/
-                    prioresDownLines++;
-                    g2D.drawLine(trans.toSlaveX(path.getX1(pathElement)), trans.toSlaveY(path.getY1(pathElement)),
-                            trans.toSlaveX(path.getX2(pathElement)), trans.toSlaveY(path.getY2(pathElement)));
+                        g2D.setColor(Color.getHSBColor(0.7f, path.getType(pathElement), 1.0f));
+                        g2D.setStroke(mediumStreetStroke);
+
+                        prioresDownLines++;
+                        g2D.drawLine(x1, y1, x2, y2);
+                    }
                 }
             }
             System.out.println(Utils.took("Drawing Bundles", start));
@@ -301,9 +295,9 @@ public class ZoomPanel extends JPanel {
             // TODO proper multi bundle management
             final Transformer t = new Transformer(bbox, drawArea);
             if(bundles.isEmpty()){
-                bundles.add(tp.bbBundleRequest(extendedRange, minPriority, t.toMasterDist(minLen), t.toMasterDist(maxLen), 0.01));
+                bundles.add(tp.bbBundleRequest(extendedRange, coreSize, minPriority, t.toMasterDist(minLen), t.toMasterDist(maxLen), 0.01));
             } else {
-                bundles.set(0, tp.bbBundleRequest(extendedRange, minPriority, t.toMasterDist(minLen), t.toMasterDist(maxLen), 0.01));
+                bundles.set(0, tp.bbBundleRequest(extendedRange, coreSize, minPriority, t.toMasterDist(minLen), t.toMasterDist(maxLen), 0.01));
             }
 
 
@@ -316,9 +310,11 @@ public class ZoomPanel extends JPanel {
 
     public void loadCore() {
         try {
-            setView();
+            if(bbox.getWidth() < 10 || bbox.getHeight() < 10) {
+                setView();
+            }
             final Transformer t = new Transformer(bbox, drawArea);
-            core = tp.getCore(coreSize, t.toMasterDist(minLen), t.toMasterDist(maxLen), 0.01);
+            core = tp.coreRequest(coreSize, t.toMasterDist(minLen), t.toMasterDist(maxLen), 0.01);
             this.router = new Router(core, bundles);
             extractGraph(bbox);
             repaint();
