@@ -17,7 +17,9 @@ public class BoundingBox {
         this.height = height;
     }
 
-    public boolean contains(int pX, int pY) {
-        return (pX > x && pX < x+width) && (pY > y && pY < y+height);
+    public boolean contains(int px, int py) {
+        long right = x+width;
+        long top = y+height;
+        return (px >= x && px < right) && (py >= y && py < top);
     }
 }
