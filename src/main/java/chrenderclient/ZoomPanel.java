@@ -5,6 +5,10 @@
 package chrenderclient;
 
 import chrenderclient.clientgraph.*;
+import com.fasterxml.jackson.core.JsonGenerationException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -12,8 +16,7 @@ import java.awt.*;
 import java.awt.geom.Line2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.logging.Level;
@@ -44,11 +47,11 @@ public class ZoomPanel extends JPanel {
 
     private int minLen = 10;
     private int maxLen = 40;
-    public int minPriority = 0;
+    public int level = 0;
     private boolean justDragged = false;
 
     public boolean showPriorityNodes = false;
-    private double extendFactor = 5;
+    private double extendFactor = 3;
     private double changeFactor = 1.8;
 
 
@@ -121,19 +124,51 @@ public class ZoomPanel extends JPanel {
         }
     }
 
-    public void paintMap(Graphics g) {
+    private static class DrawInfo {
+        public String name;
+        public String coreRequestSize;
+        public BoundingBox bbox;
+        public int coreNodes;
+        public int coreEdges;
+        public int coreLines;
+        public int coreLinesDrawn;
+        public java.util.List<BundleDrawInfo> bundles = new ArrayList<>();
+        public DrawInfo() {
+            name = "urar_map_"+System.currentTimeMillis();
+        }
+    }
+
+    private static class BundleDrawInfo {
+        public String requestSize;
+        public int level;
+        public int upEdges;
+        public int upLines;
+        public int upLinesDrawn;
+        public int downEdges;
+        public int downLines;
+        public int downLinesDrawn;
+        public BoundingBox bundleBBox;
+    }
+
+    public DrawInfo paintMap(Graphics g) {
         Graphics2D g2D = (Graphics2D) g;
         // TODO with Antialiasing drawing is awfully slow
         //g2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
         //        RenderingHints.VALUE_ANTIALIAS_ON);
         // First paint the core
         final Transformer trans = new Transformer(bbox, drawArea);
-        int coreLines = 0;
+        DrawInfo drawInfo = new DrawInfo();
         long start = System.nanoTime();
         if (core == null) {
             System.err.println("core is null");
-            return;
+            return drawInfo;
         }
+        drawInfo.coreEdges = core.getEdgeCount();
+        drawInfo.coreNodes = core.getNodeCount();
+        drawInfo.coreRequestSize = Utils.sizeForHumans(core.requestSize);
+        drawInfo.bbox = new BoundingBox((int)bbox.getX(), (int)bbox.getY(), (int) bbox.getWidth(), (int)bbox.getHeight());
+
+
         for (int i = 0; i < core.getEdgeCount(); i++) {
             RefinedPath path = core.getRefinedPath(i);
             for (int pathElement = 0; pathElement < path.size(); pathElement++) {
@@ -141,10 +176,11 @@ public class ZoomPanel extends JPanel {
                 int y1 = trans.toSlaveY(path.getY1(pathElement));
                 int x2 = trans.toSlaveX(path.getX2(pathElement));
                 int y2 = trans.toSlaveY(path.getY2(pathElement));
+                drawInfo.coreLines++;
                 if (drawArea.contains(x1, y1) || drawArea.contains(x2, y2)) {
                     g2D.setColor(Color.getHSBColor(0.7f, path.getType(pathElement), 1.0f));
                     g2D.setStroke(largeStreetStroke);
-                    coreLines++;
+                    drawInfo.coreLinesDrawn++;
                     g2D.drawLine(x1, y1, x2, y2);
                 }
             }
@@ -153,11 +189,16 @@ public class ZoomPanel extends JPanel {
 
         if (bundles.isEmpty()) {
             System.err.println("Priores is null");
-            return;
+            return drawInfo;
         }
         start = System.nanoTime();
-        int prioresUpLines = 0;
         for (Bundle bundle : bundles) {
+            BundleDrawInfo bundleDraw = new BundleDrawInfo();
+            bundleDraw.requestSize = Utils.sizeForHumans(bundle.requestSize);
+            bundleDraw.level = bundle.level;
+            bundleDraw.bundleBBox = bundle.getBbox();
+            bundleDraw.upEdges = bundle.upEdges.length;
+            bundleDraw.downEdges = bundle.downEdges.length;
             for (int i = 0; i < bundle.upEdges.length; i++) {
                 RefinedPath path = bundle.upEdges[i].path;
                 for (int pathElement = 0; pathElement < path.size(); pathElement++) {
@@ -165,17 +206,17 @@ public class ZoomPanel extends JPanel {
                     int y1 = trans.toSlaveY(path.getY1(pathElement));
                     int x2 = trans.toSlaveX(path.getX2(pathElement));
                     int y2 = trans.toSlaveY(path.getY2(pathElement));
+                    bundleDraw.upLines++;
                     if (drawArea.contains(x1, y1) || drawArea.contains(x2, y2)) {
                         g2D.setColor(Color.getHSBColor(0.7f, path.getType(pathElement), 1.0f));
                         g2D.setStroke(mediumStreetStroke);
 
-                        prioresUpLines++;
+                        bundleDraw.upLinesDrawn++;
                         g2D.drawLine(x1, y1, x2, y2);
                     }
                 }
             }
 
-            int prioresDownLines = 0;
             for (int i = 0; i < bundle.downEdges.length; i++) {
                 RefinedPath path = bundle.downEdges[i].path;
                 for (int pathElement = 0; pathElement < path.size(); pathElement++) {
@@ -183,19 +224,19 @@ public class ZoomPanel extends JPanel {
                     int y1 = trans.toSlaveY(path.getY1(pathElement));
                     int x2 = trans.toSlaveX(path.getX2(pathElement));
                     int y2 = trans.toSlaveY(path.getY2(pathElement));
+                    bundleDraw.downLines++;
                     if (drawArea.contains(x1, y1) || drawArea.contains(x2, y2)) {
 
                         g2D.setColor(Color.getHSBColor(0.7f, path.getType(pathElement), 1.0f));
                         g2D.setStroke(mediumStreetStroke);
 
-                        prioresDownLines++;
+                        bundleDraw.downLinesDrawn++;
                         g2D.drawLine(x1, y1, x2, y2);
                     }
                 }
             }
             System.out.println(Utils.took("Drawing Bundles", start));
-            System.out.println("Drew " + core.getEdgeCount() + " coreEdges with " + coreLines + " lines\n" +
-                    bundle.upEdges.length + "(" + prioresUpLines + ") PrioRes upEdges and " + bundle.downEdges.length + "(" + prioresDownLines + ") downEdges");
+            drawInfo.bundles.add(bundleDraw);
             //bundleBaseColor = bundleBaseColor.darker();
         }
 
@@ -210,6 +251,7 @@ public class ZoomPanel extends JPanel {
                 }
             }
         }
+        return drawInfo;
     }
 
     private void paintPoint(Point point, Graphics g) {
@@ -218,7 +260,26 @@ public class ZoomPanel extends JPanel {
         g.drawRect(trans.toSlaveX((int) point.getX()), trans.toSlaveY((int) point.getY()), 2, 2);
     }
 
-    void saveImage(String fileName) throws IOException {
+    private void saveImageInfo(String name, DrawInfo info) {
+        try {
+            OutputStream out = new BufferedOutputStream(new FileOutputStream(name));
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.writeValue(out,info);
+            out.flush();
+            out.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (JsonMappingException e) {
+            e.printStackTrace();
+        } catch (JsonGenerationException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    DrawInfo saveImage(String fileName) throws IOException {
         BufferedImage img = new BufferedImage(this.getWidth(), this.getHeight(), BufferedImage.TYPE_INT_ARGB);
         Graphics g = img.getGraphics();
         g.setColor(new Color(255, 205, 205));
@@ -226,8 +287,9 @@ public class ZoomPanel extends JPanel {
         Graphics2D g2D = (Graphics2D) g;
         g2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                 RenderingHints.VALUE_ANTIALIAS_ON);
-
+        DrawInfo info = paintMap(g2D);
         ImageIO.write(img, "png", new File(fileName));
+        return info;
     }
 
     public void paintRectangleSelectionTool(Graphics g) {
@@ -295,9 +357,9 @@ public class ZoomPanel extends JPanel {
             // TODO proper multi bundle management
             final Transformer t = new Transformer(bbox, drawArea);
             if(bundles.isEmpty()){
-                bundles.add(tp.bbBundleRequest(extendedRange, coreSize, minPriority, t.toMasterDist(minLen), t.toMasterDist(maxLen), 0.01));
+                bundles.add(tp.bbBundleRequest(extendedRange, coreSize, level, t.toMasterDist(minLen), t.toMasterDist(maxLen), 0.01));
             } else {
-                bundles.set(0, tp.bbBundleRequest(extendedRange, coreSize, minPriority, t.toMasterDist(minLen), t.toMasterDist(maxLen), 0.01));
+                bundles.set(0, tp.bbBundleRequest(extendedRange, coreSize, level, t.toMasterDist(minLen), t.toMasterDist(maxLen), 0.01));
             }
 
 
@@ -389,25 +451,53 @@ public class ZoomPanel extends JPanel {
         repaint();
     }
 
-    public String save() {
+    public String fileDialog() {
         JFileChooser fc = new JFileChooser();
-        int result = fc.showSaveDialog(this);
+        int result = fc.showOpenDialog(this);
         if (result == JFileChooser.CANCEL_OPTION) return "";
         try {
             File file = fc.getSelectedFile();
             return file.toString();
 
         } catch (Exception e) {
-            return "";
+            return "fileDialog";
         }
     }
 
+
     public void SaveImage(java.awt.event.ActionEvent evt) {
         try {
-            String name = save();
-            if ("".equals(name))
-                name = bbox.width / 1000.0 + "x" + bbox.height / 1000.0 + "_P" + minPriority + ".png";
-            saveImage(name);
+            String name = JOptionPane.showInputDialog("Frame Name:");;
+            DrawInfo info = saveImage(name+".png");
+            info.name = name;
+            saveImageInfo(name+"_info.json", info);
+        } catch (IOException ex) {
+            Logger.getLogger(ZoomForm.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    private static class Framing {
+        public String name;
+        public int coreSize;
+        public int level;
+        public Rectangle2D.Double bbox;
+    }
+
+    public void AutoExtractFramingList(java.awt.event.ActionEvent evt) {
+        try {
+            String listFile = fileDialog();
+            InputStream in = new BufferedInputStream(new FileInputStream(listFile));
+            ObjectMapper mapper = new ObjectMapper();
+            java.util.List<Framing> framingList = mapper.readValue(in, new TypeReference<java.util.List<Framing>>(){});
+            for (Framing frame: framingList){
+                this.bbox = frame.bbox;
+                this.level = frame.level;
+                this.coreSize = frame.coreSize;
+                extractGraph(bbox);
+                loadCore();
+                DrawInfo info = saveImage(frame.name+".png");
+                saveImageInfo(frame.name+"_info.json", info);
+            }
         } catch (IOException ex) {
             Logger.getLogger(ZoomForm.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -417,8 +507,8 @@ public class ZoomPanel extends JPanel {
         JSlider slider = (JSlider) evt.getSource();
         if (!slider.getValueIsAdjusting()) {
 
-            minPriority = slider.getValue();
-            System.out.println("MIN P " + minPriority);
+            level = slider.getValue();
+            System.out.println("MIN P " + level);
             extractGraph(bbox);
             repaint();
         }

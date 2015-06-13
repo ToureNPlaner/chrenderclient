@@ -27,6 +27,9 @@ public final class CoreGraph {
     private int[] costs;
     private int[] oEdgeIds;
 
+    // Debugging
+    public long requestSize;
+
     public CoreGraph(int nodeCount, int edgeCount) {
         this.nodeCount = nodeCount;
         this.edgeCount = edgeCount;

@@ -18,6 +18,10 @@ public class Bundle {
     public final int level;
     private BoundingBox bbox;
 
+    // Debug data
+    public long requestSize;
+
+
     public Bundle(int nodeCount, int upEdgeCount, int downEdgeCount, int coreSize, int level) {
         nodes = new Node[nodeCount];
         upEdges = new Edge[upEdgeCount];

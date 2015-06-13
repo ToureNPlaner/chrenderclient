@@ -10,6 +10,7 @@ public class Utils {
     }
 
     public static String sizeForHumans(long size) {
-        return ((double) size)/((double) (2<<20))+" MiB";
+        double s =((double) size)/((double) (2<<20));
+        return String.format("%.2f MiB", s);
     }
 }

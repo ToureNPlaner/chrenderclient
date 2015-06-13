@@ -65,6 +65,7 @@ public class ZoomForm extends javax.swing.JFrame {
         LoadCoreItem = new javax.swing.JMenuItem();
         ExportMenu = new javax.swing.JMenu();
         SaveImageItem = new javax.swing.JMenuItem();
+        AutoListImageItem = new javax.swing.JMenuItem();
         SelectionMenu = new javax.swing.JMenu();
         ClearMarkerMenuItem = new javax.swing.JMenuItem();
         UndoLastMarkerMenuItem = new javax.swing.JMenuItem();
@@ -130,7 +131,14 @@ public class ZoomForm extends javax.swing.JFrame {
                 zoomPanel.SaveImage(evt);
             }
         });
+        AutoListImageItem.setText("Auto Extract Framing List");
+        AutoListImageItem.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                zoomPanel.AutoExtractFramingList(evt);
+            }
+        });
         ExportMenu.add(SaveImageItem);
+        ExportMenu.add(AutoListImageItem);
 
         MenuBar.add(ExportMenu);
 
@@ -308,6 +316,7 @@ public class ZoomForm extends javax.swing.JFrame {
     private javax.swing.JMenu OptionMenu;
     private javax.swing.JMenuItem RunDijkstraMenuItem;
     private javax.swing.JMenuItem SaveImageItem;
+    private javax.swing.JMenuItem AutoListImageItem;
     private javax.swing.JMenu SelectionMenu;
     private javax.swing.JMenuItem ShowPriorityNodesMenuItem;
     private javax.swing.JMenu TestMenu;

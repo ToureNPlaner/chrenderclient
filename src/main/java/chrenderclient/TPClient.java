@@ -51,8 +51,10 @@ public class TPClient {
         try {
             System.out.println(response.getStatusLine());
             HttpEntity resEntity = response.getEntity();
-            System.out.println("Core has size:"+Utils.sizeForHumans(resEntity.getContentLength()));
+            long size = resEntity.getContentLength();
+            System.out.println("Core has requestSize:"+Utils.sizeForHumans(size));
             res = CoreGraph.readJSON(mapper, resEntity.getContent());
+            res.requestSize = size;
             // do something useful with the response body
             // and ensure it is fully consumed
             EntityUtils.consume(resEntity);
@@ -86,10 +88,12 @@ public class TPClient {
         try {
             System.out.println(response.getStatusLine());
             HttpEntity resEntity = response.getEntity();
-            System.out.println("Bundle has size:"+Utils.sizeForHumans(resEntity.getContentLength()));
+            long size = resEntity.getContentLength();
             long start = System.nanoTime();
             res = Bundle.readResultData(mapper, new BufferedInputStream(resEntity.getContent()));
+            res.requestSize = size;
             System.out.println(Utils.took("Reading Bundles", start));
+            System.out.println("Bundle has requestSize:"+Utils.sizeForHumans(size));
             // do something useful with the response body
             // and ensure it is fully consumed
             EntityUtils.consume(resEntity);
