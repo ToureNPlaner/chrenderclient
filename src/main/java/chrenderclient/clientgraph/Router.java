@@ -2,7 +2,10 @@ package chrenderclient.clientgraph;
 
 import com.carrotsearch.hppc.IntArrayList;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.PriorityQueue;
 import java.util.function.Predicate;
 
 /**
@@ -19,7 +22,7 @@ public class Router {
     private Bundle srcBundle;
     private Bundle trgtBundle;
     private int bestDist;
-    private ArrayDeque<RefinedPath> bestPath;
+    private DrawData bestPath;
     private int[] coreEnterPreds;
     private int[] coreLeavePreds;
     private int[] coreFwdDists;
@@ -59,7 +62,7 @@ public class Router {
     Compute route from (srcX, srcY) to (trgtX, trgtY), for now we change the type
     of the path segments to show the path, we will do this right in the future (TODO)
      */
-    public ArrayDeque<RefinedPath> route(int srcX, int srcY, int trgtX, int trgtY) {
+    public DrawData route(int srcX, int srcY, int trgtX, int trgtY) {
         System.out.println("From (" + srcX + ", " + srcY + ") to (" + trgtX + ", " + trgtY + ")");
         long start = System.nanoTime();
         // TODO src/trgt node in core
@@ -67,7 +70,7 @@ public class Router {
         this.bestPath = null;
         findSourceAndTarget(srcX, srcY, trgtX, trgtY);
         System.out.println(Utils.took("finding ids", start));
-        System.out.println("srcId: "+srcId+((srcBundle != null)?" (bundle)":"")+" trgtId: "+trgtId+((trgtBundle != null)?" (bundle)":""));
+        System.out.println("srcId: "+srcId+((srcBundle != null)?" (bundle)":"(core)")+" trgtId: "+trgtId+((trgtBundle != null)?" (bundle)":"(core)"));
         // Scan upGraph
         int[] upDists = null;
         int[] upPreds = null;
@@ -203,7 +206,7 @@ public class Router {
         int bestDownId = -1;
         int bestUpId = -1;
         int mergeBestDist = Integer.MAX_VALUE;
-        ArrayDeque<RefinedPath> path = null;
+        DrawData path = null;
 
         int i = 0;
         int j = 0;
@@ -227,13 +230,14 @@ public class Router {
         }
         if (mergeBestDist < Integer.MAX_VALUE) {
             System.out.println("Best Dist below core: " + mergeBestDist + " bestUpId: " + bestUpId + " bestDownId: " + bestDownId);
-            path = new ArrayDeque<RefinedPath>();
+            path = new DrawData();
             // up graph
             int currNode = bestUpId;
             while (currNode != srcId) {
                 int upEdgeIndex = upPreds[currNode];
                 Edge edge = srcBundle.upEdges[upEdgeIndex];
-                path.addFirst(edge.path);
+                // if order mattered added at start
+                path.addFromIndexed(srcBundle.getDraw(), edge.path);
                 currNode = edge.src - srcBundle.coreSize;
             }
 
@@ -242,7 +246,8 @@ public class Router {
             while (currNode != trgtId) {
                 int downEdgeIndex = downPreds[currNode];
                 Edge currEdge = trgtBundle.downEdges[downEdgeIndex];
-                path.addLast(currEdge.path);
+                // if order mattered added  at end
+                path.addFromIndexed(trgtBundle.getDraw(), currEdge.path);
                 currNode = currEdge.trgt - trgtBundle.coreSize;
             }
         }
@@ -254,7 +259,7 @@ public class Router {
     private void backtrackWithCore(Bundle srcBundle, Bundle trgtBundle, int[] upPreds, int[] downPreds, int[] corePreds, int[] coreEnterPreds, int[] coreLeavePreds, int srcId, int trgtId, int bestId) {
         // bestId is in core, we need to backtrack trough the core and separately through the up- and
         // down-Graphs. bestId is also at the edge of the core leaving to the down graph
-        ArrayDeque<RefinedPath> path = new ArrayDeque<RefinedPath>();
+        DrawData path = new DrawData();
 
         // down graph
         int currNode;
@@ -262,11 +267,13 @@ public class Router {
             int downEdgeIndex = coreLeavePreds[bestId];
             Edge currEdge = trgtBundle.downEdges[downEdgeIndex];
             currNode = currEdge.trgt - trgtBundle.coreSize;
-            path.addLast(currEdge.path);
+            // if order mattered added at end
+            path.addFromIndexed(trgtBundle.getDraw(), currEdge.path);
             while (currNode != trgtId) {
                 downEdgeIndex = downPreds[currNode];
                 currEdge = trgtBundle.downEdges[downEdgeIndex];
-                path.addLast(currEdge.path);
+                // if order mattered added at end
+                path.addFromIndexed(trgtBundle.getDraw(), currEdge.path);
                 currNode = currEdge.trgt - trgtBundle.coreSize;
             }
         }
@@ -276,7 +283,8 @@ public class Router {
         currNode = bestId;
         while (coreEnterPreds[currNode] == -1) {
             int currEdgeId = corePreds[currNode];
-            path.addFirst(core.getRefinedPath(currEdgeId));
+            // if order mattered added at start
+            path.addFromIndexed(core.getDraw(), core.getPath(currEdgeId));
             currNode = core.getSource(currEdgeId);
         }
 
@@ -284,12 +292,14 @@ public class Router {
         if(srcBundle != null) {
             int upEdgeIndex = coreEnterPreds[currNode];
             Edge edge = srcBundle.upEdges[upEdgeIndex];
-            path.addFirst(edge.path);
+            // if order mattered added at start
+            path.addFromIndexed(srcBundle.getDraw(), edge.path);
             currNode = edge.src - srcBundle.coreSize;
             while (currNode != srcId) {
                 upEdgeIndex = upPreds[currNode];
                 edge = srcBundle.upEdges[upEdgeIndex];
-                path.addFirst(edge.path);
+                // if order mattered added at start
+                path.addFromIndexed(srcBundle.getDraw(), edge.path);
                 currNode = edge.src - srcBundle.coreSize;
             }
         }

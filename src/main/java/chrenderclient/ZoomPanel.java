@@ -17,7 +17,6 @@ import java.awt.geom.Line2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.*;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -36,7 +35,7 @@ public class ZoomPanel extends JPanel {
     private Rectangle2D.Double bbox = new Rectangle2D.Double();
     private TPClient tp;
     private ArrayList<Point> points;
-    private ArrayDeque<RefinedPath> paths;
+    private ArrayList<DrawData> paths;
 
     private int coreSize;
 
@@ -67,7 +66,7 @@ public class ZoomPanel extends JPanel {
         this.coreSize = coreSize;
         this.points = new ArrayList<Point>();
         this.bundles = new ArrayList<Bundle>();
-        this.paths = new ArrayDeque<RefinedPath>();
+        this.paths = new ArrayList<>();
         this.router = null;
 
         this.addMouseWheelListener(new java.awt.event.MouseWheelListener() {
@@ -130,7 +129,6 @@ public class ZoomPanel extends JPanel {
         public BoundingBox bbox;
         public int coreNodes;
         public int coreEdges;
-        public int coreLines;
         public int coreLinesDrawn;
         public java.util.List<BundleDrawInfo> bundles = new ArrayList<>();
         public DrawInfo() {
@@ -142,12 +140,44 @@ public class ZoomPanel extends JPanel {
         public String requestSize;
         public int level;
         public int upEdges;
-        public int upLines;
-        public int upLinesDrawn;
         public int downEdges;
-        public int downLines;
-        public int downLinesDrawn;
+        public int linesDrawn;
         public BoundingBox bundleBBox;
+    }
+
+    private int drawPath(Graphics2D g2D, DrawData draw, Transformer trans) {
+        int linesDrawn = 0;
+        for (int drawElement = 0; drawElement < draw.size(); drawElement++) {
+            int x1 = trans.toSlaveX(draw.getX1(drawElement));
+            int y1 = trans.toSlaveY(draw.getY1(drawElement));
+            int x2 = trans.toSlaveX(draw.getX2(drawElement));
+            int y2 = trans.toSlaveY(draw.getY2(drawElement));
+            if (drawArea.contains(x1, y1) || drawArea.contains(x2, y2)) {
+                g2D.setColor(Color.RED);
+                g2D.setStroke(largeStreetStroke);
+                g2D.drawLine(x1, y1, x2, y2);
+                linesDrawn++;
+            }
+        }
+        return linesDrawn;
+    }
+
+
+    private int draw(Graphics2D g2D, DrawData draw, Transformer trans, float H) {
+        int linesDrawn = 0;
+        for (int drawElement = 0; drawElement < draw.size(); drawElement++) {
+            int x1 = trans.toSlaveX(draw.getX1(drawElement));
+            int y1 = trans.toSlaveY(draw.getY1(drawElement));
+            int x2 = trans.toSlaveX(draw.getX2(drawElement));
+            int y2 = trans.toSlaveY(draw.getY2(drawElement));
+            if (drawArea.contains(x1, y1) || drawArea.contains(x2, y2)) {
+                g2D.setColor(Color.getHSBColor(H, draw.getType(drawElement)/100.0f, 1.0f));
+                g2D.setStroke(largeStreetStroke);
+                g2D.drawLine(x1, y1, x2, y2);
+                linesDrawn++;
+            }
+        }
+        return linesDrawn;
     }
 
     public DrawInfo paintMap(Graphics g) {
@@ -167,88 +197,36 @@ public class ZoomPanel extends JPanel {
         drawInfo.coreNodes = core.getNodeCount();
         drawInfo.coreRequestSize = Utils.sizeForHumans(core.requestSize);
         drawInfo.bbox = new BoundingBox((int)bbox.getX(), (int)bbox.getY(), (int) bbox.getWidth(), (int)bbox.getHeight());
+        drawInfo.coreLinesDrawn = draw(g2D, core.getDraw(), trans, 0.7f);
 
 
-        for (int i = 0; i < core.getEdgeCount(); i++) {
-            RefinedPath path = core.getRefinedPath(i);
-            for (int pathElement = 0; pathElement < path.size(); pathElement++) {
-                int x1 = trans.toSlaveX(path.getX1(pathElement));
-                int y1 = trans.toSlaveY(path.getY1(pathElement));
-                int x2 = trans.toSlaveX(path.getX2(pathElement));
-                int y2 = trans.toSlaveY(path.getY2(pathElement));
-                drawInfo.coreLines++;
-                if (drawArea.contains(x1, y1) || drawArea.contains(x2, y2)) {
-                    g2D.setColor(Color.getHSBColor(0.7f, path.getType(pathElement), 1.0f));
-                    g2D.setStroke(largeStreetStroke);
-                    drawInfo.coreLinesDrawn++;
-                    g2D.drawLine(x1, y1, x2, y2);
-                }
-            }
-        }
         System.out.println(Utils.took("Drawing Core", start));
 
         if (bundles.isEmpty()) {
             System.err.println("Priores is null");
             return drawInfo;
         }
-        start = System.nanoTime();
+
         for (Bundle bundle : bundles) {
+            start = System.nanoTime();
             BundleDrawInfo bundleDraw = new BundleDrawInfo();
             bundleDraw.requestSize = Utils.sizeForHumans(bundle.requestSize);
             bundleDraw.level = bundle.level;
             bundleDraw.bundleBBox = bundle.getBbox();
             bundleDraw.upEdges = bundle.upEdges.length;
             bundleDraw.downEdges = bundle.downEdges.length;
-            for (int i = 0; i < bundle.upEdges.length; i++) {
-                RefinedPath path = bundle.upEdges[i].path;
-                for (int pathElement = 0; pathElement < path.size(); pathElement++) {
-                    int x1 = trans.toSlaveX(path.getX1(pathElement));
-                    int y1 = trans.toSlaveY(path.getY1(pathElement));
-                    int x2 = trans.toSlaveX(path.getX2(pathElement));
-                    int y2 = trans.toSlaveY(path.getY2(pathElement));
-                    bundleDraw.upLines++;
-                    if (drawArea.contains(x1, y1) || drawArea.contains(x2, y2)) {
-                        g2D.setColor(Color.getHSBColor(0.7f, path.getType(pathElement), 1.0f));
-                        g2D.setStroke(mediumStreetStroke);
-
-                        bundleDraw.upLinesDrawn++;
-                        g2D.drawLine(x1, y1, x2, y2);
-                    }
-                }
-            }
-
-            for (int i = 0; i < bundle.downEdges.length; i++) {
-                RefinedPath path = bundle.downEdges[i].path;
-                for (int pathElement = 0; pathElement < path.size(); pathElement++) {
-                    int x1 = trans.toSlaveX(path.getX1(pathElement));
-                    int y1 = trans.toSlaveY(path.getY1(pathElement));
-                    int x2 = trans.toSlaveX(path.getX2(pathElement));
-                    int y2 = trans.toSlaveY(path.getY2(pathElement));
-                    bundleDraw.downLines++;
-                    if (drawArea.contains(x1, y1) || drawArea.contains(x2, y2)) {
-
-                        g2D.setColor(Color.getHSBColor(0.7f, path.getType(pathElement), 1.0f));
-                        g2D.setStroke(mediumStreetStroke);
-
-                        bundleDraw.downLinesDrawn++;
-                        g2D.drawLine(x1, y1, x2, y2);
-                    }
-                }
-            }
-            System.out.println(Utils.took("Drawing Bundles", start));
+            bundleDraw.linesDrawn = draw(g2D, bundle.getDraw(), trans, 0.6f);
+            System.out.println(Utils.took("Drawing Bundle", start));
             drawInfo.bundles.add(bundleDraw);
             //bundleBaseColor = bundleBaseColor.darker();
         }
 
 
         if (paths != null) {
-            for (RefinedPath path : paths) {
-                for (int pathElement = 0; pathElement < path.size(); pathElement++) {
-                    g2D.setColor(Color.RED);
-                    g2D.setStroke(largeStreetStroke);
-                    g2D.drawLine(trans.toSlaveX(path.getX1(pathElement)), trans.toSlaveY(path.getY1(pathElement)),
-                            trans.toSlaveX(path.getX2(pathElement)), trans.toSlaveY(path.getY2(pathElement)));
-                }
+            for(DrawData path : paths) {
+                start = System.nanoTime();
+                drawPath(g2D, path, trans);
+                System.out.println(Utils.took("Drawing Path", start));
             }
         }
         return drawInfo;
@@ -493,9 +471,10 @@ public class ZoomPanel extends JPanel {
                 this.bbox = frame.bbox;
                 this.level = frame.level;
                 this.coreSize = frame.coreSize;
-                extractGraph(bbox);
                 loadCore();
+                extractGraph(bbox);
                 DrawInfo info = saveImage(frame.name+".png");
+                info.name = frame.name;
                 saveImageInfo(frame.name+"_info.json", info);
             }
         } catch (IOException ex) {
@@ -546,13 +525,13 @@ public class ZoomPanel extends JPanel {
             Point pSrc = points.get(pointNum);
             Point pTrgt = points.get(pointNum + 1);
             long start = System.nanoTime();
-            ArrayDeque<RefinedPath> path = (router != null)? router.route(pSrc.x, pSrc.y, pTrgt.x, pTrgt.y) : null;
+            DrawData path = (router != null)? router.route(pSrc.x, pSrc.y, pTrgt.x, pTrgt.y) : null;
             System.out.println(Utils.took("route", start));
             if (path == null) {
                 JOptionPane.showMessageDialog(null, "Path not found", "Routing unsuccesfull", JOptionPane.INFORMATION_MESSAGE);
                 break;
             }
-            paths.addAll(path);
+            paths.add(path);
 
         }
         repaint();

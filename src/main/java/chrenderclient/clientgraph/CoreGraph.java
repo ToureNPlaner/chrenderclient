@@ -1,6 +1,7 @@
 package chrenderclient.clientgraph;
 
 
+import com.carrotsearch.hppc.IntArrayList;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
@@ -17,20 +18,22 @@ public final class CoreGraph {
     private int nodeCount;
     private int edgeCount;
 
+    private final DrawData draw;
+
     private int[] offsetOut;
     private int[] xs;
     private int[] ys;
 
-    private RefinedPath[] paths;
     private int[] srcs;
     private int[] trgts;
     private int[] costs;
     private int[] oEdgeIds;
+    private IntArrayList[] paths;
 
     // Debugging
     public long requestSize;
 
-    public CoreGraph(int nodeCount, int edgeCount) {
+    private CoreGraph(int nodeCount, int edgeCount, DrawData draw) {
         this.nodeCount = nodeCount;
         this.edgeCount = edgeCount;
 
@@ -41,7 +44,8 @@ public final class CoreGraph {
         trgts = new int[edgeCount];
         costs = new int[edgeCount];
         oEdgeIds = new int[edgeCount];
-        paths = new RefinedPath[edgeCount];
+        paths = new IntArrayList[edgeCount];
+        this.draw = draw;
     }
 
     private void generateOffsets() {
@@ -61,7 +65,7 @@ public final class CoreGraph {
         offsetOut[nodeCount] = outSum;
     }
 
-    private void setEdge(int pos, int src, int trgt, int cost, int oEdgeId, RefinedPath path) {
+    private void setEdge(int pos, int src, int trgt, int cost, int oEdgeId, IntArrayList path) {
         srcs[pos] = src;
         trgts[pos] = trgt;
         costs[pos] = cost;
@@ -85,7 +89,7 @@ public final class CoreGraph {
         return costs[edgeId];
     }
 
-    public RefinedPath getRefinedPath(int edgeId) {
+    public IntArrayList getPath(int edgeId) {
         return paths[edgeId];
     }
 
@@ -114,6 +118,10 @@ public final class CoreGraph {
         return nodeCount;
     }
 
+    public DrawData getDraw() {
+        return draw;
+    }
+
     public static CoreGraph readJSON(ObjectMapper mapper, InputStream in) throws IOException{
         final JsonParser jp = mapper.getFactory().createParser(in);
         jp.setCodec(mapper);
@@ -126,6 +134,7 @@ public final class CoreGraph {
         JsonToken token;
         boolean finished = false;
         CoreGraph result = null;
+        DrawData draw = null;
         int nodeCount = -1;
         int edgeCount = -1;
         int numEdges = 0;
@@ -140,11 +149,13 @@ public final class CoreGraph {
                     nodeCount = jp.getIntValue();
                 } else if ("edgeCount".equals(fieldname)) {
                     edgeCount = jp.getIntValue();
+                } else if ("draw".equals(fieldname)) {
+                    draw = DrawData.readDrawData(jp, token);
                 } else if ("edges".equals(fieldname)) {
-                    if (edgeCount < 0 || nodeCount < 0) {
-                        throw new JsonParseException("nodeCount and edgeCount need to come before the edges themselves", jp.getCurrentLocation());
+                    if (edgeCount < 0 || nodeCount < 0 || draw == null) {
+                        throw new JsonParseException("nodeCount, edgeCount and draw need to come before the edges themselves", jp.getCurrentLocation());
                     }
-                    result = new CoreGraph(nodeCount, edgeCount);
+                    result = new CoreGraph(nodeCount, edgeCount, draw);
                     // Should be on START_ARRAY
                     if (token != JsonToken.START_ARRAY) {
                         throw new JsonParseException("edges is no array", jp.getCurrentLocation());
@@ -154,12 +165,11 @@ public final class CoreGraph {
                         if (token != JsonToken.START_OBJECT) {
                             throw new JsonParseException("edge is no object", jp.getCurrentLocation());
                         }
-
-                        RefinedPath path = new RefinedPath();
                         int src = 0;
                         int trgt = 0;
                         int cost = 0;
                         int oEdgeId = 0;
+                        IntArrayList path = new IntArrayList();
 
                         while (jp.nextToken() != JsonToken.END_OBJECT) {
                             fieldname = jp.getCurrentName();
@@ -167,20 +177,13 @@ public final class CoreGraph {
                             if ("path".equals(fieldname)) {
                                 // Should be on START_ARRAY
                                 if (token != JsonToken.START_ARRAY) {
-                                    throw new JsonParseException("edges is no array", jp.getCurrentLocation());
+                                    throw new JsonParseException("path is no array", jp.getCurrentLocation());
                                 }
-
                                 while (jp.nextToken() != JsonToken.END_ARRAY) {
                                     // TODO Error checking i.e. for too few parameters would be kinda nice
-                                    int srcX = jp.getIntValue();
-                                    int srcY = jp.nextIntValue(0);
-                                    int trgtX = jp.nextIntValue(0);
-                                    int trgtY = jp.nextIntValue(0);
-                                    // No nextFloatValue ?
-                                    jp.nextToken();
-                                    float type = jp.getFloatValue();
-                                    path.add(srcX, srcY, trgtX, trgtY, type);
+                                    path.add(jp.getIntValue());
                                 }
+
                             } else if ("src".equals(fieldname)) {
                                 src = jp.getIntValue();
                             } else if ("trgt".equals(fieldname)) {
@@ -192,9 +195,8 @@ public final class CoreGraph {
                             }
                         }
 
-
-                        if(path.size() > 0) {
-                            result.setNodeCoords(src, path.getX1(0), path.getY1(0));
+                        if(path.size() > 0 && draw.size() > 0) {
+                            result.setNodeCoords(src, draw.getX1(path.get(0)), draw.getY1(path.get(0)));
                         }
                         result.setEdge(numEdges, src, trgt, cost, oEdgeId, path);
                         numEdges++;

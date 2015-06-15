@@ -9,6 +9,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
 
+/**
+ * A Bundle combines up- and downGraphs for all nodes withing a bounding box with level greater
+ * some minimum level
+ */
 public class Bundle {
 
     public final Edge[] upEdges;
@@ -16,30 +20,32 @@ public class Bundle {
     public final Node[] nodes;
     public final int coreSize;
     public final int level;
-    private BoundingBox bbox;
+    private DrawData draw;
 
     // Debug data
     public long requestSize;
 
 
-    public Bundle(int nodeCount, int upEdgeCount, int downEdgeCount, int coreSize, int level) {
+    private Bundle(int nodeCount, int upEdgeCount, int downEdgeCount, int coreSize, int level) {
         nodes = new Node[nodeCount];
         upEdges = new Edge[upEdgeCount];
         downEdges = new Edge[downEdgeCount];
         this.coreSize = coreSize;
         this.level = level;
-        this.bbox = null;
+        this.draw = null;
     }
 
+    public DrawData getDraw() {
+        return draw;
+    }
 
-    private static Bundle readPrioResultHead(JsonParser jp, JsonToken token) throws IOException, JsonParseException {
+    private static Bundle readPrioResultHead(JsonParser jp, JsonToken token) throws IOException {
         String fieldName;
         int nodeCount = -1;
         int upEdgeCount = -1;
         int downEdgeCount = -1;
         int coreSize = 0;
         int level = 0;
-        RefinedPath path = new RefinedPath();
         if (token != JsonToken.START_OBJECT) {
             throw new JsonParseException("head is no object", jp.getCurrentLocation());
         }
@@ -99,11 +105,17 @@ public class Bundle {
                 fieldName = jp.getCurrentName();
                 token = jp.nextToken(); // move to value, or
                 // START_OBJECT/START_ARRAY
+
                 if ("head".equals(fieldName)) {
                     bundle = readPrioResultHead(jp, token);
-                } else if ("edges".equals(fieldName)) {
+                } else if ("draw".equals(fieldName)) {
                     if(bundle == null) {
-                        throw new JsonParseException("Need to see head before edges", jp.getCurrentLocation());
+                        throw new JsonParseException("Need to see head before draw", jp.getCurrentLocation());
+                    }
+                    bundle.draw = DrawData.readDrawData(jp, token);
+                } else if ("edges".equals(fieldName)) {
+                    if(bundle == null ||  bundle.draw == null) {
+                        throw new JsonParseException("Need to see head and draw before edges", jp.getCurrentLocation());
                     }
                     readEdges(jp, token, bundle);
                 } else {
@@ -129,13 +141,10 @@ public class Bundle {
             throw new JsonParseException("edges is no Json object", jp.getCurrentLocation());
         }
 
-        int minX = Integer.MAX_VALUE;
-        int minY = Integer.MAX_VALUE;
-        int maxX = Integer.MIN_VALUE;
-        int maxY = Integer.MIN_VALUE;
         while (jp.nextToken() != JsonToken.END_OBJECT) {
             fieldname = jp.getCurrentName();
             token = jp.nextToken(); // move to value, or
+
             if ("upEdges".equals(fieldname)) {
                 // Should be on START_ARRAY
                 int edgeNum = 0;
@@ -152,11 +161,8 @@ public class Bundle {
                         currSrc = e.src;
                         int index = currSrc - bundle.coreSize;
                         if(bundle.nodes[index] == null) {
-                            Node node = new Node(e.path.getX1(0), e.path.getY1(0), currSrc);
-                            minX = Math.min(minX, node.x);
-                            minY = Math.min(minY, node.y);
-                            maxX = Math.max(maxX, node.x);
-                            maxY = Math.max(maxY, node.y);
+                            int firstDrawIndex = e.path.get(0);
+                            Node node = new Node(bundle.draw.getX1(firstDrawIndex), bundle.draw.getY1(firstDrawIndex), currSrc);
                             bundle.nodes[index] = node;
                         }
                         bundle.nodes[index].upIndex = edgeNum;
@@ -183,11 +189,8 @@ public class Bundle {
                         currTrgt = e.trgt;
                         int index = currTrgt - bundle.coreSize;
                         if(bundle.nodes[index] == null) {
-                            Node node = new Node(e.path.getX1(e.path.size() - 1), e.path.getY1(e.path.size() - 1), currTrgt);
-                            minX = Math.min(minX, node.x);
-                            minY = Math.min(minY, node.y);
-                            maxX = Math.max(maxX, node.x);
-                            maxY = Math.max(maxY, node.y);
+                            int lastDrawIndex = e.path.get(e.path.size()-1);
+                            Node node = new Node(bundle.draw.getX2(lastDrawIndex), bundle.draw.getY2(lastDrawIndex), currTrgt);
                             bundle.nodes[index] = node;
                         }
                         bundle.nodes[index].downIndex = edgeNum;
@@ -200,10 +203,9 @@ public class Bundle {
                 }
             }
         }
-        bundle.bbox = new BoundingBox(minX, minY, maxX-minX, maxY-minY);
     }
 
     public BoundingBox getBbox() {
-        return bbox;
+        return draw.getBbox();
     }
 }

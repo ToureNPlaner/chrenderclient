@@ -1,5 +1,6 @@
 package chrenderclient.clientgraph;
 
+import com.carrotsearch.hppc.IntArrayList;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
@@ -13,9 +14,9 @@ public final class Edge {
     public int src;
     public int trgt;
     public int cost;
-    public RefinedPath path;
+    public IntArrayList path;
 
-    public Edge(int src, int trgt, int cost, RefinedPath path) {
+    public Edge(int src, int trgt, int cost, IntArrayList path) {
         this.src = src;
         this.trgt = trgt;
         this.cost = cost;
@@ -27,7 +28,7 @@ public final class Edge {
         int src = -1;
         int trgt = -1;
         int cost = -1;
-        RefinedPath path = new RefinedPath();
+        IntArrayList path = new IntArrayList();
         if (token != JsonToken.START_OBJECT) {
             throw new JsonParseException("edge is no object", jp.getCurrentLocation());
         }
@@ -40,7 +41,7 @@ public final class Edge {
                 trgt = jp.getIntValue();
             } else if ("cost".equals(fieldName)) {
                 cost = jp.getIntValue();
-            } else if ("draw".equals(fieldName)) {
+            } else if ("path".equals(fieldName)) {
                 // Should be on START_ARRAY
                 if (token != JsonToken.START_ARRAY) {
                     throw new JsonParseException("draw is no array", jp.getCurrentLocation());
@@ -48,14 +49,7 @@ public final class Edge {
 
                 while (jp.nextToken() != JsonToken.END_ARRAY) {
                     // TODO Error checking i.e. for too few parameters would be kinda nice
-                    int srcX = jp.getIntValue();
-                    int srcY = jp.nextIntValue(0);
-                    int trgtX = jp.nextIntValue(0);
-                    int trgtY = jp.nextIntValue(0);
-                    // No nextFloatValue ?
-                    jp.nextToken();
-                    float type = jp.getFloatValue();
-                    path.add(srcX, srcY, trgtX, trgtY, type);
+                    path.add(jp.getIntValue());
                 }
             } else {
                 throw new JsonParseException("Unexpected token " + token, jp.getCurrentLocation());
