@@ -189,8 +189,9 @@ public class Bundle {
                         currTrgt = e.trgt;
                         int index = currTrgt - bundle.coreSize;
                         if(bundle.nodes[index] == null) {
-                            int lastDrawIndex = e.path.get(e.path.size()-1);
+                            int lastDrawIndex = e.path.get(e.path.size() - 1);
                             Node node = new Node(bundle.draw.getX2(lastDrawIndex), bundle.draw.getY2(lastDrawIndex), currTrgt);
+
                             bundle.nodes[index] = node;
                         }
                         bundle.nodes[index].downIndex = edgeNum;
