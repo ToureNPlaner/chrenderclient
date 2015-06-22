@@ -16,11 +16,11 @@ import java.io.IOException;
 public class DrawData {
     private final IntArrayList data;
     private static final int DRAW_RECORD_SIZE = 5;
-    private BoundingBox bbox;
+    private final BoundingBox bbox;
 
     public  DrawData() {
         this.data = new IntArrayList();
-        this.bbox = new BoundingBox(0, 0 , 0, 0);
+        this.bbox = new BoundingBox();
     }
 
     public int size() {
@@ -49,10 +49,6 @@ public class DrawData {
 
     public BoundingBox getBbox() {
         return bbox;
-    }
-
-    private void setBbox(BoundingBox bbox) {
-        this.bbox = bbox;
     }
 
     public void addLine(int srcX, int srcY, int trgtX, int trgtY, int type){

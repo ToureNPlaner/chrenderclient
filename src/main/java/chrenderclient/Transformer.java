@@ -4,6 +4,8 @@
  */
 package chrenderclient;
 
+import chrenderclient.clientgraph.BoundingBox;
+
 import java.awt.geom.Rectangle2D;
 
 /**
@@ -11,40 +13,40 @@ import java.awt.geom.Rectangle2D;
  */
 public class Transformer {
     private final double scale;
-    private final Rectangle2D.Double master;
-    private final Rectangle2D.Double slave;
+    private final BoundingBox bbox;
+    private final Rectangle2D.Double drawArea;
 
-    public Transformer(Rectangle2D.Double master, Rectangle2D.Double slave) {
-        this.master = master;
-        this.slave = slave;
-        double scaleWidth = (master.getWidth()) / slave.getWidth();
-        double scaleHeight = (master.getHeight()) / slave.getHeight();
+    public Transformer(BoundingBox bbox, Rectangle2D.Double drawArea) {
+        this.bbox = bbox;
+        this.drawArea = drawArea;
+        double scaleWidth = (bbox.width) / drawArea.getWidth();
+        double scaleHeight = (bbox.height) / drawArea.getHeight();
         scale = Math.max(scaleWidth, scaleHeight);
     }
 
-    public int toMasterDist(int d) {
+    public int toRealDist(int d) {
         return (int) (d*scale);
     }
 
-    public int toSlaveDist(int d) {
+    public int toDrawDist(int d) {
         return (int) (d/scale);
     }
 
 
-    public int toSlaveX(int x) {
-        return (int) ((x - master.x) / scale + slave.x);
+    public int toDrawX(int x) {
+        return (int) ((x - bbox.x) / scale + drawArea.x);
     }
 
-    public int toSlaveY(int y) {
-        return (int) ((y - master.y) / scale + slave.y);
+    public int toDrawY(int y) {
+        return (int) ((y - bbox.y) / scale + drawArea.y);
     }
 
-    public int toMasterX(int x) {
-        return (int) (master.x + (x - slave.x) * scale);
+    public int toRealX(int x) {
+        return (int) (bbox.x + (x - drawArea.x) * scale);
     }
 
-    public int toMasterY(int y) {
-        return (int) (master.y + (y - slave.y) * scale);
+    public int toRealY(int y) {
+        return (int) (bbox.y + (y - drawArea.y) * scale);
     }
 
 }

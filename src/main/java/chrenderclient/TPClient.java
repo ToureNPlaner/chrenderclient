@@ -1,5 +1,6 @@
 package chrenderclient;
 
+import chrenderclient.clientgraph.BoundingBox;
 import chrenderclient.clientgraph.Bundle;
 import chrenderclient.clientgraph.CoreGraph;
 import chrenderclient.clientgraph.Utils;
@@ -14,7 +15,6 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 
-import java.awt.geom.Rectangle2D;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 
@@ -64,13 +64,13 @@ public class TPClient {
         return res;
     }
 
-    public Bundle bbBundleRequest(Rectangle2D.Double range, int coreSize, int minPrio, int minLen, int maxLen, double maxRatio) throws IOException {
+    public Bundle bbBundleRequest(BoundingBox bbox, int coreSize, int minPrio, int minLen, int maxLen, double maxRatio) throws IOException {
         Bundle res = null;
         HttpPost httpPost = new HttpPost(this.uri + "/algbbbundle");
         httpPost.addHeader("Accept", "application/x-jackson-smile");
         String bS = "{\"bbox\":" +
-                "{\"x\":" + range.getX() + ",\"y\":" + range.getY() +
-                ",\"width\":" + range.getWidth() + ",\"height\":" + range.getHeight() + "}," +
+                "{\"x\":" + bbox.x + ",\"y\":" + bbox.y +
+                ",\"width\":" + bbox.width + ",\"height\":" + bbox.height + "}," +
                 "\"nodeCount\":1000,\"mode\":\"exact\",\"level\":"+minPrio+",\"minLen\":"+minLen+",\"maxLen\":"+maxLen+",\"maxRatio\":"+maxRatio+", " +
                 "\"coreSize\" : "+coreSize+"}";
         System.err.println(bS);

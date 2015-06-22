@@ -32,7 +32,7 @@ public class ZoomPanel extends JPanel {
     private ArrayList<Bundle> bundles;
     private Router router;
     private CoreGraph core;
-    private Rectangle2D.Double bbox = new Rectangle2D.Double();
+    private BoundingBox bbox = new BoundingBox();
     private TPClient tp;
     private ArrayList<Point> points;
     private ArrayList<DrawData> paths;
@@ -98,7 +98,7 @@ public class ZoomPanel extends JPanel {
 
     public void addPaintPoint(Point point) {
         final Transformer trans = new Transformer(bbox, drawArea);
-        point = new Point(trans.toMasterX(point.x), trans.toMasterY(point.y));
+        point = new Point(trans.toRealX(point.x), trans.toRealY(point.y));
         paintPoint(point, this.getGraphics());
         points.add(point);
     }
@@ -127,6 +127,7 @@ public class ZoomPanel extends JPanel {
         public String name;
         public String coreRequestSize;
         public BoundingBox bbox;
+        public BoundingBox coreBBox;
         public int coreNodes;
         public int coreEdges;
         public int coreLines;
@@ -140,6 +141,7 @@ public class ZoomPanel extends JPanel {
     private static class BundleDrawInfo {
         public String requestSize;
         public int level;
+        public int nodes;
         public int upEdges;
         public int downEdges;
         public int linesDrawn;
@@ -150,7 +152,7 @@ public class ZoomPanel extends JPanel {
     private void drawCoreNodes(Graphics2D g, Transformer trans) {
         g.setColor(Color.MAGENTA);
         for(int i = 0; i < core.getNodeCount(); ++i) {
-            g.fillRect(trans.toSlaveX(core.getX(i))-2, trans.toSlaveY(core.getY(i))-2, 4, 4);
+            g.fillRect(trans.toDrawX(core.getX(i))-2, trans.toDrawY(core.getY(i))-2, 4, 4);
         }
     }
 
@@ -159,7 +161,7 @@ public class ZoomPanel extends JPanel {
         for (int i = 0; i < bundle.nodes.length; ++i) {
             Node n = bundle.nodes[i];
             if(n.hasCoordinates()) {
-                g.fillRect(trans.toSlaveX(n.getX()) - 2, trans.toSlaveY(n.getY()) - 2, 4, 4);
+                g.fillRect(trans.toDrawX(n.getX()) - 2, trans.toDrawY(n.getY()) - 2, 4, 4);
             }
 
         }
@@ -168,10 +170,10 @@ public class ZoomPanel extends JPanel {
     private int draw(Graphics2D g2D, DrawData draw, Transformer trans, float hue) {
         int linesDrawn = 0;
         for (int drawElement = 0; drawElement < draw.size(); drawElement++) {
-            int x1 = trans.toSlaveX(draw.getX1(drawElement));
-            int y1 = trans.toSlaveY(draw.getY1(drawElement));
-            int x2 = trans.toSlaveX(draw.getX2(drawElement));
-            int y2 = trans.toSlaveY(draw.getY2(drawElement));
+            int x1 = trans.toDrawX(draw.getX1(drawElement));
+            int y1 = trans.toDrawY(draw.getY1(drawElement));
+            int x2 = trans.toDrawX(draw.getX2(drawElement));
+            int y2 = trans.toDrawY(draw.getY2(drawElement));
             if (drawArea.contains(x1, y1) || drawArea.contains(x2, y2)) {
                 g2D.setColor(Color.getHSBColor(hue, draw.getType(drawElement)/100.0f, 1.0f));
                 g2D.setStroke(largeStreetStroke);
@@ -198,7 +200,9 @@ public class ZoomPanel extends JPanel {
         drawInfo.coreEdges = core.getEdgeCount();
         drawInfo.coreNodes = core.getNodeCount();
         drawInfo.coreRequestSize = Utils.sizeForHumans(core.requestSize);
-        drawInfo.bbox = new BoundingBox((int)bbox.getX(), (int)bbox.getY(), (int) bbox.getWidth(), (int)bbox.getHeight());
+        BoundingBox extendedBBox = computeExtendedBBox(bbox);
+        drawInfo.bbox = new BoundingBox(extendedBBox.x, extendedBBox.y, extendedBBox.width, extendedBBox.height);
+        drawInfo.coreBBox = core.getDraw().getBbox();
         drawInfo.coreLines = core.getDraw().size();
         drawInfo.coreLinesDrawn = draw(g2D, core.getDraw(), trans, 0.7f);
 
@@ -215,6 +219,7 @@ public class ZoomPanel extends JPanel {
             BundleDrawInfo bundleDraw = new BundleDrawInfo();
             bundleDraw.requestSize = Utils.sizeForHumans(bundle.requestSize);
             bundleDraw.level = bundle.level;
+            bundleDraw.nodes = bundle.nodes.length;
             bundleDraw.bundleBBox = bundle.getBbox();
             bundleDraw.upEdges = bundle.upEdges.length;
             bundleDraw.downEdges = bundle.downEdges.length;
@@ -245,7 +250,7 @@ public class ZoomPanel extends JPanel {
     private void paintPoint(Point point, Graphics g) {
         final Transformer trans = new Transformer(bbox, drawArea);
         g.setColor(Color.BLUE);
-        g.fillRect(trans.toSlaveX((int) point.getX())-2, trans.toSlaveY((int) point.getY())-2, 5, 5);
+        g.fillRect(trans.toDrawX((int) point.getX())-2, trans.toDrawY((int) point.getY())-2, 5, 5);
     }
 
     private void saveImageInfo(String name, DrawInfo info) {
@@ -329,25 +334,21 @@ public class ZoomPanel extends JPanel {
         int y = 49;
         int width = (int) (getWidth() * 50.0);
         int height = (int) (getHeight() * 50.0);
-        bbox = new Rectangle2D.Double(x, y, width, height);
+        bbox = new BoundingBox(x, y, width, height);
     }
 
-    private void extractGraph(Rectangle2D.Double range) {
+    private void extractGraph(BoundingBox bbox) {
         long start = System.nanoTime();
-        Rectangle2D.Double extendedRange = new Rectangle2D.Double();
-        extendedRange.x = range.x - (extendFactor - 1) / 2 * range.width;
-        extendedRange.y = range.y - (extendFactor - 1) / 2 * range.height;
-        extendedRange.width = extendFactor * range.width;
-        extendedRange.height = extendFactor * range.height;
+        BoundingBox extendedBBox = computeExtendedBBox(bbox);
 
         try {
-            System.err.println("Requesting " + extendedRange);
+            System.err.println("Requesting " + extendedBBox);
             // TODO proper multi bundle management
-            final Transformer t = new Transformer(bbox, drawArea);
+            final Transformer t = new Transformer(this.bbox, drawArea);
             if(bundles.isEmpty()){
-                bundles.add(tp.bbBundleRequest(extendedRange, coreSize, level, t.toMasterDist(minLen), t.toMasterDist(maxLen), 0.01));
+                bundles.add(tp.bbBundleRequest(extendedBBox, coreSize, level, t.toRealDist(minLen), t.toRealDist(maxLen), 0.01));
             } else {
-                bundles.set(0, tp.bbBundleRequest(extendedRange, coreSize, level, t.toMasterDist(minLen), t.toMasterDist(maxLen), 0.01));
+                bundles.set(0, tp.bbBundleRequest(extendedBBox, coreSize, level, t.toRealDist(minLen), t.toRealDist(maxLen), 0.01));
             }
 
 
@@ -358,13 +359,22 @@ public class ZoomPanel extends JPanel {
 
     }
 
+    private BoundingBox computeExtendedBBox(BoundingBox bbox) {
+        BoundingBox extendedBBox = new BoundingBox();
+        extendedBBox.x = (int) (bbox.x - (extendFactor - 1) / 2 * bbox.width);
+        extendedBBox.y = (int) (bbox.y - (extendFactor - 1) / 2 * bbox.height);
+        extendedBBox.width = (int) (extendFactor * bbox.width);
+        extendedBBox.height = (int) (extendFactor * bbox.height);
+        return extendedBBox;
+    }
+
     public void loadCore() {
         try {
-            if(bbox.getWidth() < 10 || bbox.getHeight() < 10) {
+            if(bbox.width < 10 || bbox.height < 10) {
                 setView();
             }
             final Transformer t = new Transformer(bbox, drawArea);
-            core = tp.coreRequest(coreSize, t.toMasterDist(minLen), t.toMasterDist(maxLen), 0.01);
+            core = tp.coreRequest(coreSize, t.toRealDist(minLen), t.toRealDist(maxLen), 0.01);
             this.router = new Router(core, bundles);
             extractGraph(bbox);
             repaint();
@@ -400,8 +410,8 @@ public class ZoomPanel extends JPanel {
         }
         justDragged = false;
         final Transformer t = new Transformer(bbox, drawArea);
-        dx = t.toMasterDist(dx);
-        dy = t.toMasterDist(dy);
+        dx = t.toRealDist(dx);
+        dy = t.toRealDist(dy);
 
         System.out.println("deltas: " + dx + ", " + dy);
 
@@ -418,8 +428,8 @@ public class ZoomPanel extends JPanel {
         int dy = evt.getY() - yBorder;
 
         Transformer t = new Transformer(bbox, drawArea);
-        dx = t.toMasterDist(dx);
-        dy = t.toMasterDist(dy);
+        dx = t.toRealDist(dx);
+        dy = t.toRealDist(dy);
         System.out.println("pos: " + dx + ", " + dy);
 
         if (notches > 0) {
@@ -429,10 +439,10 @@ public class ZoomPanel extends JPanel {
             bbox.height *= changeFactor;
         } else {
             if (bbox.width > 100 && bbox.height > 100) {
-                bbox.x += dx * (1 - 1.0 / changeFactor);
-                bbox.y += dy * (1 - 1.0 / changeFactor);
-                bbox.width = bbox.width / changeFactor;
-                bbox.height = bbox.height / changeFactor;
+                bbox.x += ((double)dx * (1 - 1.0 / changeFactor));
+                bbox.y += ((double)dy * (1 - 1.0 / changeFactor));
+                bbox.width = (int) (bbox.width / changeFactor);
+                bbox.height = (int) (bbox.height / changeFactor);
             }
         }
         extractGraph(bbox);
@@ -468,7 +478,7 @@ public class ZoomPanel extends JPanel {
         public String name;
         public int coreSize;
         public int level;
-        public Rectangle2D.Double bbox;
+        public BoundingBox bbox;
     }
 
     public void AutoExtractFramingList(java.awt.event.ActionEvent evt) {
@@ -516,8 +526,8 @@ public class ZoomPanel extends JPanel {
         }
 
         final Transformer t = new Transformer(bbox, drawArea);
-        dx = t.toMasterDist(dx);
-        dy = t.toMasterDist(dy);
+        dx = t.toRealDist(dx);
+        dy = t.toRealDist(dy);
         System.out.println("deltas: " + dx + ", " + dy);
 
         bbox.x -= dx;
