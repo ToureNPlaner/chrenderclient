@@ -161,16 +161,18 @@ public class Router {
             Bundle bundle = it.next();
             for (int i = 0; i < bundle.nodes.length; ++i) {
                 Node n = bundle.nodes[i];
+                if(!n.hasCoordinates()){
+                    continue;
+                }
 
-
-                double srcDist = Math.hypot(n.x - srcX, n.y - srcY);
+                double srcDist = Math.hypot(n.getX() - srcX, n.getY() - srcY);
                 if (srcDist < bestSrcDist) {
                     srcBundle = bundle;
                     srcId = i;
                     bestSrcDist = srcDist;
                 }
 
-                double trgtDist = Math.hypot(n.x - trgtX, n.y - trgtY);
+                double trgtDist = Math.hypot(n.getX() - trgtX, n.getY() - trgtY);
                 if (trgtDist < bestTrgtDist) {
                     trgtBundle = bundle;
                     trgtId = i;
@@ -211,7 +213,7 @@ public class Router {
         int i = 0;
         int j = 0;
         while (i < srcBundle.nodes.length || j < trgtBundle.nodes.length) {
-            if (srcBundle.nodes[i].oId == trgtBundle.nodes[j].oId) {
+            if (srcBundle.nodes[i].getOriginalId() == trgtBundle.nodes[j].getOriginalId()) {
                 if (upDists[i] < Integer.MAX_VALUE && downDists[j] < Integer.MAX_VALUE) {
                     int tmpDist = upDists[i] + downDists[j];
                     if (tmpDist < mergeBestDist) {
@@ -222,9 +224,9 @@ public class Router {
                 }
                 ++i;
                 ++j;
-            } else if (srcBundle.nodes[i].oId < trgtBundle.nodes[j].oId) {
+            } else if (srcBundle.nodes[i].getOriginalId() < trgtBundle.nodes[j].getOriginalId()) {
                 ++i;
-            } else if (srcBundle.nodes[i].oId > trgtBundle.nodes[j].oId) {
+            } else if (srcBundle.nodes[i].getOriginalId() > trgtBundle.nodes[j].getOriginalId()) {
                 ++j;
             }
         }
@@ -367,7 +369,7 @@ public class Router {
         int[] upPreds = new int[srcBundle.nodes.length];
 
         Arrays.fill(upDists, Integer.MAX_VALUE);
-        int srcUpIndex = srcBundle.nodes[srcId].upIndex;
+        int srcUpIndex = srcBundle.nodes[srcId].getUpIndex();
         assert srcId == srcBundle.upEdges[srcUpIndex].src - srcBundle.coreSize;
         upDists[srcId] = 0;
         for (int upEdgeIndex = 0; upEdgeIndex < srcBundle.upEdges.length; ++upEdgeIndex) {
@@ -405,7 +407,7 @@ public class Router {
         int[] downPreds = new int[trgtBundle.nodes.length];
 
         Arrays.fill(downDists, Integer.MAX_VALUE);
-        int trgtDownIndex = trgtBundle.nodes[trgtId].downIndex;
+        int trgtDownIndex = trgtBundle.nodes[trgtId].getDownIndex();
         assert trgtId == trgtBundle.downEdges[trgtDownIndex].trgt - trgtBundle.coreSize;
         downDists[trgtId] = 0;
 

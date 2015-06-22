@@ -147,6 +147,23 @@ public class ZoomPanel extends JPanel {
         public BoundingBox bundleBBox;
     }
 
+    private void drawCoreNodes(Graphics2D g, Transformer trans) {
+        g.setColor(Color.MAGENTA);
+        for(int i = 0; i < core.getNodeCount(); ++i) {
+            g.fillRect(trans.toSlaveX(core.getX(i))-2, trans.toSlaveY(core.getY(i))-2, 4, 4);
+        }
+    }
+
+    private void drawBundleNodes(Graphics2D g, Transformer trans, Bundle bundle) {
+        g.setColor(Color.YELLOW);
+        for (int i = 0; i < bundle.nodes.length; ++i) {
+            Node n = bundle.nodes[i];
+            if(n.hasCoordinates()) {
+                g.fillRect(trans.toSlaveX(n.getX()) - 2, trans.toSlaveY(n.getY()) - 2, 4, 4);
+            }
+
+        }
+    }
 
     private int draw(Graphics2D g2D, DrawData draw, Transformer trans, float hue) {
         int linesDrawn = 0;
@@ -206,6 +223,9 @@ public class ZoomPanel extends JPanel {
             System.out.println(Utils.took("Drawing Bundle", start));
             drawInfo.bundles.add(bundleDraw);
             //bundleBaseColor = bundleBaseColor.darker();
+            if(showPriorityNodes) {
+                drawBundleNodes(g2D, trans, bundle);
+            }
         }
 
 
@@ -216,13 +236,16 @@ public class ZoomPanel extends JPanel {
                 System.out.println(Utils.took("Drawing Path", start));
             }
         }
+        if(showPriorityNodes) {
+            drawCoreNodes(g2D, trans);
+        }
         return drawInfo;
     }
 
     private void paintPoint(Point point, Graphics g) {
         final Transformer trans = new Transformer(bbox, drawArea);
         g.setColor(Color.BLUE);
-        g.drawRect(trans.toSlaveX((int) point.getX()), trans.toSlaveY((int) point.getY()), 2, 2);
+        g.fillRect(trans.toSlaveX((int) point.getX())-2, trans.toSlaveY((int) point.getY())-2, 5, 5);
     }
 
     private void saveImageInfo(String name, DrawInfo info) {

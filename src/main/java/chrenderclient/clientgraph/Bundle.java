@@ -109,17 +109,17 @@ public class Bundle {
                 if ("head".equals(fieldName)) {
                     bundle = readPrioResultHead(jp, token);
                 } else if ("draw".equals(fieldName)) {
-                    if(bundle == null) {
+                    if (bundle == null) {
                         throw new JsonParseException("Need to see head before draw", jp.getCurrentLocation());
                     }
                     bundle.draw = DrawData.readDrawData(jp, token);
                 } else if ("edges".equals(fieldName)) {
-                    if(bundle == null ||  bundle.draw == null) {
+                    if (bundle == null || bundle.draw == null) {
                         throw new JsonParseException("Need to see head and draw before edges", jp.getCurrentLocation());
                     }
                     readEdges(jp, token, bundle);
                 } else {
-                    throw new JsonParseException("Unexpected field "+fieldName, jp.getCurrentLocation());
+                    throw new JsonParseException("Unexpected field " + fieldName, jp.getCurrentLocation());
                 }
             } else if (token == JsonToken.END_OBJECT) {
                 // Normal end of request
@@ -159,13 +159,7 @@ public class Bundle {
                     // and not in the core
                     if (e.src != currSrc) {
                         currSrc = e.src;
-                        int index = currSrc - bundle.coreSize;
-                        if(bundle.nodes[index] == null) {
-                            int firstDrawIndex = e.path.get(0);
-                            Node node = new Node(bundle.draw.getX1(firstDrawIndex), bundle.draw.getY1(firstDrawIndex), currSrc);
-                            bundle.nodes[index] = node;
-                        }
-                        bundle.nodes[index].upIndex = edgeNum;
+                        setOrCreateSourceNode(bundle, edgeNum, currSrc, e);
                     }
                     bundle.upEdges[edgeNum] = e;
                     edgeNum++;
@@ -187,14 +181,7 @@ public class Bundle {
                     // and not in the core
                     if (e.trgt != currTrgt) {
                         currTrgt = e.trgt;
-                        int index = currTrgt - bundle.coreSize;
-                        if(bundle.nodes[index] == null) {
-                            int lastDrawIndex = e.path.get(e.path.size() - 1);
-                            Node node = new Node(bundle.draw.getX2(lastDrawIndex), bundle.draw.getY2(lastDrawIndex), currTrgt);
-
-                            bundle.nodes[index] = node;
-                        }
-                        bundle.nodes[index].downIndex = edgeNum;
+                        setOrCreateTargetNode(bundle, edgeNum, currTrgt, e);
                     }
                     bundle.downEdges[edgeNum] = e;
                     edgeNum++;
@@ -204,6 +191,37 @@ public class Bundle {
                 }
             }
         }
+    }
+
+    private static void setOrCreateSourceNode(Bundle bundle, int edgeNum, int currSrc, Edge e) {
+        int index = currSrc - bundle.coreSize;
+        if (bundle.nodes[index] == null) {
+            Node node;
+            if (e.path.size() > 0) {
+                int firstDrawIndex = e.path.get(0);
+                node = new Node(bundle.draw.getX1(firstDrawIndex), bundle.draw.getY1(firstDrawIndex), currSrc);
+            } else { // Node not in the visible area thus has no coordinates
+                node = new Node(currSrc);
+            }
+            bundle.nodes[index] = node;
+        }
+        bundle.nodes[index].setUpIndex(edgeNum);
+    }
+
+    private static void setOrCreateTargetNode(Bundle bundle, int edgeNum, int currTrgt, Edge e) {
+        int index = currTrgt - bundle.coreSize;
+        if (bundle.nodes[index] == null) {
+            Node node;
+            if (e.path.size() > 0) {
+                int lastDrawIndex = e.path.get(e.path.size() - 1);
+                node = new Node(bundle.draw.getX2(lastDrawIndex), bundle.draw.getY2(lastDrawIndex), currTrgt);
+            } else { // Node not in the visible area thus has no coordinates
+                node = new Node(currTrgt);
+            }
+
+            bundle.nodes[index] = node;
+        }
+        bundle.nodes[index].setDownIndex(edgeNum);
     }
 
     public BoundingBox getBbox() {
