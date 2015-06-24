@@ -1,5 +1,7 @@
 package chrenderclient.clientgraph;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 /**
  * Created by niklas on 14.05.15.
  */
@@ -34,7 +36,7 @@ public class BoundingBox {
         this.width = -1;
         this.height= -1;
     }
-
+    @JsonIgnore
     public boolean isValid() {
         return height > 0 && width > 0;
     }

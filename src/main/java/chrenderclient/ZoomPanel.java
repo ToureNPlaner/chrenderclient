@@ -127,12 +127,14 @@ public class ZoomPanel extends JPanel {
         public String name;
         public String coreRequestSize;
         public BoundingBox bbox;
+        public BoundingBox extendedBBox;
         public BoundingBox coreBBox;
         public int coreNodes;
         public int coreEdges;
         public int coreLines;
         public int coreLinesDrawn;
         public java.util.List<BundleDrawInfo> bundles = new ArrayList<>();
+
         public DrawInfo() {
             name = "urar_map_"+System.currentTimeMillis();
         }
@@ -200,8 +202,8 @@ public class ZoomPanel extends JPanel {
         drawInfo.coreEdges = core.getEdgeCount();
         drawInfo.coreNodes = core.getNodeCount();
         drawInfo.coreRequestSize = Utils.sizeForHumans(core.requestSize);
-        BoundingBox extendedBBox = computeExtendedBBox(bbox);
-        drawInfo.bbox = new BoundingBox(extendedBBox.x, extendedBBox.y, extendedBBox.width, extendedBBox.height);
+        drawInfo.bbox = bbox;
+        drawInfo.extendedBBox = computeExtendedBBox(bbox);
         drawInfo.coreBBox = core.getDraw().getBbox();
         drawInfo.coreLines = core.getDraw().size();
         drawInfo.coreLinesDrawn = draw(g2D, core.getDraw(), trans, 0.7f);
