@@ -27,7 +27,6 @@ public final class CoreGraph {
     private int[] srcs;
     private int[] trgts;
     private int[] costs;
-    private int[] oEdgeIds;
     private IntArrayList[] paths;
 
     // Debugging
@@ -43,7 +42,6 @@ public final class CoreGraph {
         srcs = new int[edgeCount];
         trgts = new int[edgeCount];
         costs = new int[edgeCount];
-        oEdgeIds = new int[edgeCount];
         paths = new IntArrayList[edgeCount];
         this.draw = draw;
     }
@@ -55,26 +53,19 @@ public final class CoreGraph {
             offsetOut[srcs[i]]++;
         }
         int outSum = 0;
-        int inSum = 0;
         for (int i = 0; i < nodeCount; ++i) {
             int oldOutSum = outSum;
-            int oldInSum = inSum;
             outSum += offsetOut[i];
             offsetOut[i] = oldOutSum;
         }
         offsetOut[nodeCount] = outSum;
     }
 
-    private void setEdge(int pos, int src, int trgt, int cost, int oEdgeId, IntArrayList path) {
+    private void setEdge(int pos, int src, int trgt, int cost, IntArrayList path) {
         srcs[pos] = src;
         trgts[pos] = trgt;
         costs[pos] = cost;
-        oEdgeIds[pos] = oEdgeId;
         paths[pos] = path;
-    }
-
-    public int getOriginalEdgeId(int edgeId) {
-        return oEdgeIds[edgeId];
     }
 
     public int getSource(int edgeId) {
@@ -162,43 +153,21 @@ public final class CoreGraph {
                     }
 
                     while ((token = jp.nextToken()) != JsonToken.END_ARRAY) {
-                        if (token != JsonToken.START_OBJECT) {
-                            throw new JsonParseException("edge is no object", jp.getCurrentLocation());
-                        }
-                        int src = 0;
-                        int trgt = 0;
-                        int cost = 0;
-                        int oEdgeId = 0;
                         IntArrayList path = new IntArrayList();
+                        int src = jp.getIntValue();
+                        int trgt = jp.nextIntValue(0);
+                        int cost = jp.nextIntValue(0);
 
-                        while (jp.nextToken() != JsonToken.END_OBJECT) {
-                            fieldname = jp.getCurrentName();
-                            token = jp.nextToken();
-                            if ("path".equals(fieldname)) {
-                                // Should be on START_ARRAY
-                                if (token != JsonToken.START_ARRAY) {
-                                    throw new JsonParseException("path is no array", jp.getCurrentLocation());
-                                }
-                                while (jp.nextToken() != JsonToken.END_ARRAY) {
-                                    // TODO Error checking i.e. for too few parameters would be kinda nice
-                                    path.add(jp.getIntValue());
-                                }
-
-                            } else if ("src".equals(fieldname)) {
-                                src = jp.getIntValue();
-                            } else if ("trgt".equals(fieldname)) {
-                                trgt = jp.getIntValue();
-                            } else if ("cost".equals(fieldname)) {
-                                cost = jp.getIntValue();
-                            } else if ("edgeId".equals(fieldname)) {
-                                oEdgeId = jp.getIntValue();
-                            }
+                        // Should be on START_ARRAY
+                        if (jp.nextToken() != JsonToken.START_ARRAY) {
+                            throw new JsonParseException("draw is no array", jp.getCurrentLocation());
                         }
 
-                        if(path.size() > 0 && draw.size() > 0) {
-                            result.setNodeCoords(src, draw.getX1(path.get(0)), draw.getY1(path.get(0)));
+                        while (jp.nextToken() != JsonToken.END_ARRAY) {
+                            // TODO Error checking i.e. for too few parameters would be kinda nice
+                            path.add(jp.getIntValue());
                         }
-                        result.setEdge(numEdges, src, trgt, cost, oEdgeId, path);
+                        result.setEdge(numEdges, src, trgt, cost, path);
                         numEdges++;
                     }
                 }

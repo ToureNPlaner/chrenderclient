@@ -1,7 +1,6 @@
 package chrenderclient.clientgraph;
 
 import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntIndexedContainer;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
@@ -14,73 +13,117 @@ import java.io.IOException;
  * Created by niklas on 15.06.15.
  */
 public class DrawData {
-    private final IntArrayList data;
-    private static final int DRAW_RECORD_SIZE = 5;
+    private final IntArrayList vertexData;
+    private final IntArrayList edgeData;
+    private static final int EDGE_RECORD_SIZE = 3;
+    private static final int VERTEX_RECORD_SIZE = 2;
     private final BoundingBox bbox;
 
     public  DrawData() {
-        this.data = new IntArrayList();
+        this.vertexData = new IntArrayList();
+        this.edgeData = new IntArrayList();
         this.bbox = new BoundingBox();
     }
 
     public int size() {
-        return data.size()/DRAW_RECORD_SIZE;
+        return edgeData.size()/EDGE_RECORD_SIZE;
     }
 
-    public int getX1(int index) {
-        return data.get(index*DRAW_RECORD_SIZE);
+    public int getX(int vertexId) {
+        return vertexData.get(vertexId*VERTEX_RECORD_SIZE);
     }
 
-    public int getY1(int index) {
-        return data.get(index*DRAW_RECORD_SIZE+1);
+    public int getY(int vertexId) {
+        return vertexData.get(vertexId*VERTEX_RECORD_SIZE+1);
     }
 
-    public int getX2(int index) {
-        return data.get(index*DRAW_RECORD_SIZE+2);
+    public int getX1(int edgeId) {
+        return vertexData.get(getSource(edgeId)*VERTEX_RECORD_SIZE);
     }
 
-    public int getY2(int index) {
-        return data.get(index*DRAW_RECORD_SIZE+3);
+    public int getY1(int edgeId) {
+        return vertexData.get(getSource(edgeId)*VERTEX_RECORD_SIZE+1);
     }
 
-    public int getType(int index) {
-        return data.get(index*DRAW_RECORD_SIZE+4);
+    public int getX2(int edgeId) {
+        return vertexData.get(getTarget(edgeId)*VERTEX_RECORD_SIZE);
+    }
+
+    public int getY2(int edgeId) {
+        return vertexData.get(getTarget(edgeId)*VERTEX_RECORD_SIZE+1);
+    }
+
+    public int getSource(int edgeId) {return edgeData.get(edgeId*EDGE_RECORD_SIZE);}
+
+    public int getTarget(int edgeId) {return edgeData.get(edgeId*EDGE_RECORD_SIZE+1);}
+
+    public int getType(int edgeId) {
+        return edgeData.get(edgeId*EDGE_RECORD_SIZE+2);
     }
 
     public BoundingBox getBbox() {
         return bbox;
     }
 
-    public void addLine(int srcX, int srcY, int trgtX, int trgtY, int type){
-        data.add(srcX, srcY, trgtX, trgtY, type);
-        bbox.expandIfNeeded(srcX, srcY);
-        bbox.expandIfNeeded(trgtX, trgtY);
+    private void addVertex(int x, int y){
+        vertexData.add(x, y);
+        bbox.expandIfNeeded(x, y);
     }
 
-    public void addFromIndexed(DrawData other, IntIndexedContainer drawIndices) {
-        for (int i = 0; i < drawIndices.size(); ++i) {
-            int drawIndex =  drawIndices.get(i);
-            addLine(other.getX1(drawIndex), other.getY1(drawIndex), other.getX2(drawIndex), other.getY2(drawIndex), other.getType(drawIndex));
+    /**
+     * Add indexed data from other draw, note that this doesn't reuse vertices with the same
+     * coordinates currently it's only for generating simple DrawData e.g. for paths
+     * @param draw
+     * @param path
+     */
+    public final void addFromIndexed(DrawData draw, IntArrayList path) {
+        for (int i = 0; i < path.size(); ++i) {
+            int edgeId = path.get(i);
+            int x1 = draw.getX1(edgeId);
+            int y1 = draw.getY1(edgeId);
+            int x2 = draw.getX2(edgeId);
+            int y2 = draw.getY2(edgeId);
+            int type = draw.getType(edgeId);
+            vertexData.add(x1, y1, x2, y2);
+
+            edgeData.add(vertexData.size()/VERTEX_RECORD_SIZE - 2, vertexData.size()/VERTEX_RECORD_SIZE - 1, type);
         }
+    }
+
+    private void addEdge(int srcId, int trgtId, int type){
+        edgeData.add(srcId, trgtId, type);
     }
 
     public static DrawData readDrawData(JsonParser jp, JsonToken token) throws IOException {
         DrawData res = new DrawData();
-        // Should be on START_ARRAY
-        if (token != JsonToken.START_ARRAY) {
-            throw new JsonParseException("draw is not an array", jp.getCurrentLocation());
+        // Should be on START_OBJECT
+        if (token != JsonToken.START_OBJECT) {
+            throw new JsonParseException("draw is not an object", jp.getCurrentLocation());
         }
-        while (jp.nextToken() != JsonToken.END_ARRAY) {
-            int srcX = jp.getIntValue();
-            int srcY = jp.nextIntValue(0);
-            int trgtX = jp.nextIntValue(0);
-            int trgtY = jp.nextIntValue(0);
+        String fieldName;
+        while (jp.nextToken() != JsonToken.END_OBJECT) {
+            fieldName = jp.getCurrentName();
+            token = jp.nextToken();
+            if ("vertices".equals(fieldName)) {
+                // Should be on START_ARRAY
+                if (token != JsonToken.START_ARRAY) {
+                    throw new JsonParseException("path is no array", jp.getCurrentLocation());
+                }
+                while (jp.nextToken() != JsonToken.END_ARRAY) {
+                    res.addVertex(jp.getIntValue(), jp.nextIntValue(0));
+                }
 
-            // No nextFloatValue ?
-            int type = jp.nextIntValue(0);
-            // TODO proper type
-            res.addLine(srcX, srcY, trgtX, trgtY, type);
+            } else if ("edges".equals(fieldName)) {
+                // Should be on START_ARRAY
+                if (token != JsonToken.START_ARRAY) {
+                    throw new JsonParseException("path is no array", jp.getCurrentLocation());
+                }
+                while (jp.nextToken() != JsonToken.END_ARRAY) {
+                    res.addEdge(jp.getIntValue(), jp.nextIntValue(0), jp.nextIntValue(0));
+                }
+            }
         }
         return res;
     }
+
 }

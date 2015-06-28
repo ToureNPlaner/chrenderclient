@@ -24,7 +24,7 @@ import java.util.logging.Logger;
 /**
  * @author storandt, niklas
  */
-public class ZoomPanel extends JPanel {
+public final class ZoomPanel extends JPanel {
 
     public static final long serialVersionUID = 1;
     private Rectangle2D.Double drawArea = new Rectangle2D.Double(17, 44, 302, 469);
@@ -169,7 +169,7 @@ public class ZoomPanel extends JPanel {
         }
     }
 
-    private int draw(Graphics2D g2D, DrawData draw, Transformer trans, float hue) {
+    private final int draw(Graphics2D g2D, DrawData draw, Transformer trans, float hue) {
         int linesDrawn = 0;
         for (int drawElement = 0; drawElement < draw.size(); drawElement++) {
             int x1 = trans.toDrawX(draw.getX1(drawElement));
