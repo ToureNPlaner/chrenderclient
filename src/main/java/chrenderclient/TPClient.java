@@ -64,14 +64,18 @@ public class TPClient {
         return res;
     }
 
-    public Bundle bbBundleRequest(BoundingBox bbox, int coreSize, int minPrio, int minLen, int maxLen, double maxRatio) throws IOException {
+    public Bundle bbBundleRequest(BoundingBox bbox, int coreSize, int minPrio, int minLen, int maxLen, double maxRatio, boolean AUTO) throws IOException {
         Bundle res = null;
+        String mode = "exact";
+        if(AUTO){
+            mode = (minPrio == Integer.MAX_VALUE)? "auto":"hinted";
+        }
         HttpPost httpPost = new HttpPost(this.uri + "/algbbbundle");
         httpPost.addHeader("Accept", "application/x-jackson-smile");
         String bS = "{\"bbox\":" +
                 "{\"x\":" + bbox.x + ",\"y\":" + bbox.y +
                 ",\"width\":" + bbox.width + ",\"height\":" + bbox.height + "}," +
-                "\"nodeCount\":1000,\"mode\":\"exact\",\"level\":"+minPrio+",\"minLen\":"+minLen+",\"maxLen\":"+maxLen+",\"maxRatio\":"+maxRatio+", " +
+                "\"nodeCount\":200,\"mode\":\""+mode+"\",\"level\":"+minPrio+",\"minLen\":"+minLen+",\"maxLen\":"+maxLen+",\"maxRatio\":"+maxRatio+", " +
                 "\"coreSize\" : "+coreSize+"}";
         System.err.println(bS);
         byte[] b = bS.getBytes("UTF-8");

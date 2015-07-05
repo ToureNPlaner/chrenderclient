@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
 import java.awt.geom.Line2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
@@ -46,7 +47,8 @@ public final class ZoomPanel extends JPanel {
 
     private int minLen = 10;
     private int maxLen = 40;
-    public int level = 0;
+    public int lastLevel = Integer.MAX_VALUE;
+    private boolean AUTO = true;
     private boolean justDragged = false;
 
     public boolean showPriorityNodes = false;
@@ -121,6 +123,10 @@ public final class ZoomPanel extends JPanel {
         for (Point p : points) {
             paintPoint(p, g);
         }
+    }
+
+    public void toggleAutoLevel(ActionEvent evt) {
+        this.AUTO = !this.AUTO;
     }
 
     private static class DrawInfo {
@@ -348,10 +354,11 @@ public final class ZoomPanel extends JPanel {
             // TODO proper multi bundle management
             final Transformer t = new Transformer(this.bbox, drawArea);
             if(bundles.isEmpty()){
-                bundles.add(tp.bbBundleRequest(extendedBBox, coreSize, level, t.toRealDist(minLen), t.toRealDist(maxLen), 0.01));
+                bundles.add(tp.bbBundleRequest(extendedBBox, coreSize, lastLevel, t.toRealDist(minLen), t.toRealDist(maxLen), 0.01, AUTO));
             } else {
-                bundles.set(0, tp.bbBundleRequest(extendedBBox, coreSize, level, t.toRealDist(minLen), t.toRealDist(maxLen), 0.01));
+                bundles.set(0, tp.bbBundleRequest(extendedBBox, coreSize, lastLevel, t.toRealDist(minLen), t.toRealDist(maxLen), 0.01, AUTO));
             }
+            this.lastLevel = bundles.get(0).level;
 
 
         } catch (IOException e) {
@@ -376,7 +383,7 @@ public final class ZoomPanel extends JPanel {
                 setView();
             }
             final Transformer t = new Transformer(bbox, drawArea);
-            core = tp.coreRequest(coreSize, t.toRealDist(minLen), t.toRealDist(maxLen), 0.01);
+            core = tp.coreRequest(coreSize, 50, 1000, 0.01);
             this.router = new Router(core, bundles);
             extractGraph(bbox);
             repaint();
@@ -489,11 +496,11 @@ public final class ZoomPanel extends JPanel {
             InputStream in = new BufferedInputStream(new FileInputStream(listFile));
             ObjectMapper mapper = new ObjectMapper();
             java.util.List<Framing> framingList = mapper.readValue(in, new TypeReference<java.util.List<Framing>>(){});
+            loadCore();
             for (Framing frame: framingList){
                 this.bbox = frame.bbox;
-                this.level = frame.level;
+                this.lastLevel = (AUTO)?Integer.MAX_VALUE:frame.level;
                 this.coreSize = frame.coreSize;
-                loadCore();
                 extractGraph(bbox);
                 DrawInfo info = saveImage(frame.name+".png");
                 info.name = frame.name;
@@ -508,8 +515,8 @@ public final class ZoomPanel extends JPanel {
         JSlider slider = (JSlider) evt.getSource();
         if (!slider.getValueIsAdjusting()) {
 
-            level = slider.getValue();
-            System.out.println("MIN P " + level);
+            lastLevel = slider.getValue();
+            System.out.println("MIN P " + lastLevel);
             extractGraph(bbox);
             repaint();
         }

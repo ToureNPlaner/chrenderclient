@@ -27,9 +27,6 @@ public class ZoomForm extends javax.swing.JFrame {
     public int height = 0;
 
 
-
-
-
     /**
      * Creates new form zoomForm
      *
@@ -73,6 +70,7 @@ public class ZoomForm extends javax.swing.JFrame {
         RunDijkstraMenuItem = new javax.swing.JMenuItem();
         OptionMenu = new javax.swing.JMenu();
         ShowPriorityNodesMenuItem = new javax.swing.JMenuItem();
+        ToggleAutoLevelMenuItem = new javax.swing.JMenuItem();
         TestMenu = new javax.swing.JMenu();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
@@ -182,7 +180,15 @@ public class ZoomForm extends javax.swing.JFrame {
                 ShowPriorityNodesMenuItemActionPerformed(evt);
             }
         });
+
+        ToggleAutoLevelMenuItem.setText("Toggle Auto Level");
+        ToggleAutoLevelMenuItem.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                zoomPanel.toggleAutoLevel(evt);
+            }
+        });
         OptionMenu.add(ShowPriorityNodesMenuItem);
+        OptionMenu.add(ToggleAutoLevelMenuItem);
 
         MenuBar.add(OptionMenu);
 
@@ -221,6 +227,7 @@ public class ZoomForm extends javax.swing.JFrame {
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
+
 
 
     private void LoadGraphItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_LoadGraphItemActionPerformed
@@ -319,6 +326,7 @@ public class ZoomForm extends javax.swing.JFrame {
     private javax.swing.JMenuItem AutoListImageItem;
     private javax.swing.JMenu SelectionMenu;
     private javax.swing.JMenuItem ShowPriorityNodesMenuItem;
+    private javax.swing.JMenuItem ToggleAutoLevelMenuItem;
     private javax.swing.JMenu TestMenu;
     private javax.swing.JMenuItem UndoLastMarkerMenuItem;
     private javax.swing.JLabel fixedMinPrioLabel;
