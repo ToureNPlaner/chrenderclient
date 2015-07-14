@@ -382,7 +382,6 @@ public final class ZoomPanel extends JPanel {
             if(bbox.width < 10 || bbox.height < 10) {
                 setView();
             }
-            final Transformer t = new Transformer(bbox, drawArea);
             core = tp.coreRequest(coreSize, 50, 1000, 0.01);
             this.router = new Router(core, bundles);
             extractGraph(bbox);

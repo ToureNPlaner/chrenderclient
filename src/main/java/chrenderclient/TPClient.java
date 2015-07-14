@@ -72,10 +72,11 @@ public class TPClient {
         }
         HttpPost httpPost = new HttpPost(this.uri + "/algbbbundle");
         httpPost.addHeader("Accept", "application/x-jackson-smile");
+        final int nodeCount = 800;
         String bS = "{\"bbox\":" +
                 "{\"x\":" + bbox.x + ",\"y\":" + bbox.y +
                 ",\"width\":" + bbox.width + ",\"height\":" + bbox.height + "}," +
-                "\"nodeCount\":200,\"mode\":\""+mode+"\",\"level\":"+minPrio+",\"minLen\":"+minLen+",\"maxLen\":"+maxLen+",\"maxRatio\":"+maxRatio+", " +
+                "\"nodeCount\":"+nodeCount+",\"mode\":\""+mode+"\",\"level\":"+minPrio+",\"minLen\":"+minLen+",\"maxLen\":"+maxLen+",\"maxRatio\":"+maxRatio+", " +
                 "\"coreSize\" : "+coreSize+"}";
         System.err.println(bS);
         byte[] b = bS.getBytes("UTF-8");

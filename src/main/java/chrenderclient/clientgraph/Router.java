@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.PriorityQueue;
-import java.util.function.Predicate;
 
 /**
  * Class that handles routing on PrioResult/CoreGraph combined graphs
@@ -155,8 +154,9 @@ public class Router {
         }
 
 
-        Predicate<Bundle> containsSourceAndTarget = b -> b.getBbox().contains(srcX, srcY) && b.getBbox().contains(trgtX, trgtY);
-        Iterator<Bundle> it = bundles.parallelStream().filter(containsSourceAndTarget).iterator();
+        //Predicate<Bundle> containsSourceAndTarget = b -> b.getBbox().contains(srcX, srcY) && b.getBbox().contains(trgtX, trgtY);
+        //Iterator<Bundle> it = bundles.parallelStream().filter(containsSourceAndTarget).iterator();
+        Iterator<Bundle> it  = bundles.iterator();
         while (it.hasNext()) {
             Bundle bundle = it.next();
             for (int i = 0; i < bundle.nodes.length; ++i) {
