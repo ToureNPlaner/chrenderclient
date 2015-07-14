@@ -168,6 +168,12 @@ public final class CoreGraph {
                             path.add(jp.getIntValue());
                         }
                         result.setEdge(numEdges, src, trgt, cost, path);
+                        if(path.size() > 0){
+                            int firstDrawEdgeId = path.get(0);
+                            result.setNodeCoords(src, draw.getX1(firstDrawEdgeId), draw.getY1(firstDrawEdgeId));
+                            int lastDrawEdgeId = path.get(path.size()-1);
+                            result.setNodeCoords(trgt, draw.getX1(lastDrawEdgeId), draw.getY1(lastDrawEdgeId));
+                        }
                         numEdges++;
                     }
                 }

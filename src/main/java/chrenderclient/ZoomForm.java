@@ -39,8 +39,9 @@ public class ZoomForm extends javax.swing.JFrame {
         Dimension dim = new Dimension(1900, 1000);
         this.setPreferredSize(dim);
         //this.resize(new Dimension(400, 660));
-        priorityLabel.setText("20");
-        prioritySlider.setValue(20);
+        final int startLevel = 20;
+        priorityLabel.setText(Integer.toString(startLevel));
+        prioritySlider.setValue(startLevel);
     }
 
 
@@ -226,6 +227,7 @@ public class ZoomForm extends javax.swing.JFrame {
                         ));
 
         pack();
+        zoomPanel.loadCore();
     }// </editor-fold>//GEN-END:initComponents
 
 
