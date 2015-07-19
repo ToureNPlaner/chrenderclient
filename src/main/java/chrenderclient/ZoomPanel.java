@@ -30,7 +30,7 @@ public final class ZoomPanel extends JPanel {
     public static final long serialVersionUID = 1;
     private Rectangle2D.Double drawArea = new Rectangle2D.Double(17, 44, 302, 469);
 
-    private ArrayList<Bundle> bundles;
+    private BundleCache bundles;
     private Router router;
     private CoreGraph core;
     private BoundingBox bbox = new BoundingBox();
@@ -59,6 +59,7 @@ public final class ZoomPanel extends JPanel {
     private static final BasicStroke smallStreetStroke = new BasicStroke(1F);
     private static BasicStroke mediumStreetStroke = new BasicStroke(1.1F);
     private static BasicStroke largeStreetStroke = new BasicStroke(1.4F);
+    private static BasicStroke pathStroke = new BasicStroke(2.4F);
 
 
     public ZoomPanel(TPClient tpClient, int coreSize) {
@@ -67,7 +68,7 @@ public final class ZoomPanel extends JPanel {
         this.tp = tpClient;
         this.coreSize = coreSize;
         this.points = new ArrayList<Point>();
-        this.bundles = new ArrayList<Bundle>();
+        this.bundles = new BundleCache(1);
         this.paths = new ArrayList<>();
         this.router = null;
 
@@ -175,7 +176,7 @@ public final class ZoomPanel extends JPanel {
         }
     }
 
-    private final int draw(Graphics2D g2D, DrawData draw, Transformer trans, float hue) {
+    private final int draw(Graphics2D g2D, DrawData draw, Transformer trans, BasicStroke stroke, float hue) {
         int linesDrawn = 0;
         for (int drawElement = 0; drawElement < draw.size(); drawElement++) {
             int x1 = trans.toDrawX(draw.getX1(drawElement));
@@ -184,7 +185,7 @@ public final class ZoomPanel extends JPanel {
             int y2 = trans.toDrawY(draw.getY2(drawElement));
             if (drawArea.contains(x1, y1) || drawArea.contains(x2, y2)) {
                 g2D.setColor(Color.getHSBColor(hue, draw.getType(drawElement)/100.0f, 1.0f));
-                g2D.setStroke(largeStreetStroke);
+                g2D.setStroke(stroke);
                 g2D.drawLine(x1, y1, x2, y2);
                 linesDrawn++;
             }
@@ -212,7 +213,7 @@ public final class ZoomPanel extends JPanel {
         drawInfo.extendedBBox = computeExtendedBBox(bbox);
         drawInfo.coreBBox = core.getDraw().getBbox();
         drawInfo.coreLines = core.getDraw().size();
-        drawInfo.coreLinesDrawn = draw(g2D, core.getDraw(), trans, 0.7f);
+        drawInfo.coreLinesDrawn = draw(g2D, core.getDraw(), trans, largeStreetStroke, 0.7f);
 
 
         System.out.println(Utils.took("Drawing Core", start));
@@ -232,7 +233,7 @@ public final class ZoomPanel extends JPanel {
             bundleDraw.upEdges = bundle.upEdges.length;
             bundleDraw.downEdges = bundle.downEdges.length;
             bundleDraw.lines = bundle.getDraw().size();
-            bundleDraw.linesDrawn = draw(g2D, bundle.getDraw(), trans, 0.6f);
+            bundleDraw.linesDrawn = draw(g2D, bundle.getDraw(), trans, mediumStreetStroke, 0.6f);
             System.out.println(Utils.took("Drawing Bundle", start));
             drawInfo.bundles.add(bundleDraw);
             //bundleBaseColor = bundleBaseColor.darker();
@@ -245,7 +246,7 @@ public final class ZoomPanel extends JPanel {
         if (paths != null) {
             for(DrawData path : paths) {
                 start = System.nanoTime();
-                draw(g2D, path, trans, 0.3F);
+                draw(g2D, path, trans, pathStroke, 0.3F);
                 System.out.println(Utils.took("Drawing Path", start));
             }
         }
@@ -353,13 +354,9 @@ public final class ZoomPanel extends JPanel {
             System.err.println("Requesting " + extendedBBox);
             // TODO proper multi bundle management
             final Transformer t = new Transformer(this.bbox, drawArea);
-            if(bundles.isEmpty()){
-                bundles.add(tp.bbBundleRequest(extendedBBox, coreSize, lastLevel, t.toRealDist(minLen), t.toRealDist(maxLen), 0.01, AUTO));
-            } else {
-                bundles.set(0, tp.bbBundleRequest(extendedBBox, coreSize, lastLevel, t.toRealDist(minLen), t.toRealDist(maxLen), 0.01, AUTO));
-            }
-            this.lastLevel = bundles.get(0).level;
-
+            Bundle freshBundle = tp.bbBundleRequest(extendedBBox, coreSize, lastLevel, t.toRealDist(minLen), t.toRealDist(maxLen), 0.01, AUTO);
+            this.lastLevel = freshBundle.level;
+            bundles.offer(freshBundle);
 
         } catch (IOException e) {
             e.printStackTrace();

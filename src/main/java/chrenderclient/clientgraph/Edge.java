@@ -23,7 +23,7 @@ public final class Edge {
         this.path = path;
     }
 
-    public static Edge readEdge(JsonParser jp, JsonToken token) throws JsonParseException, IOException {
+    public static Edge readEdge(JsonParser jp, JsonToken token) throws IOException {
         IntArrayList path = new IntArrayList();
         int src = jp.getIntValue();
         int trgt = jp.nextIntValue(0);

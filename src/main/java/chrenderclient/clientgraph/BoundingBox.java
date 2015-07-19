@@ -47,6 +47,14 @@ public class BoundingBox {
         return (px >= x && px < right) && (py >= y && py < top);
     }
 
+    public BoundingBox intersect(BoundingBox other) {
+        int xnew = Math.max(x, other.x);
+        int ynew  = Math.max(y, other.y);
+        int rightnew = Math.min(x + width, other.x + other.width);
+        int bottomnew = Math.min(y + height, other.y + other.height);
+        return new BoundingBox(xnew, ynew, Math.max(rightnew -  xnew, 0), Math.max(bottomnew - ynew, 0));
+    }
+
     public void expandIfNeeded(int px, int py) {
         if(width < 0){
             x = px;
