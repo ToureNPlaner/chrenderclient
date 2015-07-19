@@ -22,7 +22,7 @@ public class DrawData {
     public  DrawData() {
         this.vertexData = new IntArrayList();
         this.edgeData = new IntArrayList();
-        this.bbox = null;
+        this.bbox = new BoundingBox();
     }
 
     public int size() {
@@ -71,23 +71,10 @@ public class DrawData {
 
     private void addVertex(int x, int y){
         vertexData.add(x, y);
+        bbox.expandIfNeeded(x, y);
     }
 
-    private void computeBundingBox(){
-        int minX = Integer.MAX_VALUE;
-        int maxX = Integer.MIN_VALUE;
-        int minY = Integer.MAX_VALUE;
-        int maxY = Integer.MIN_VALUE;
-        for(int i = 0; i < numVertices(); i++){
-            int x = getX(i);
-            minX = Math.min(minX, x);
-            maxX = Math.max(maxX, x);
-            int y = getY(i);
-            minY = Math.min(minY, y);
-            maxY = Math.max(maxY, y);
-        }
-        bbox = new BoundingBox(minX, minY, maxX-minX, maxY-minY);
-    }
+
 
     /**
      * Add indexed data from other draw, note that this doesn't reuse vertices with the same
@@ -107,7 +94,6 @@ public class DrawData {
             addVertex(x2, y2);
             edgeData.add(vertexData.size()/VERTEX_RECORD_SIZE - 2, vertexData.size()/VERTEX_RECORD_SIZE - 1, type);
         }
-        computeBundingBox();
     }
 
     private void addEdge(int srcId, int trgtId, int type){
@@ -146,7 +132,6 @@ public class DrawData {
                 }
             }
         }
-        res.computeBundingBox();
         return res;
     }
 
