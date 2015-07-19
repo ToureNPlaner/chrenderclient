@@ -1,7 +1,5 @@
 package chrenderclient.clientgraph;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 /**
  * Created by niklas on 14.05.15.
  */
@@ -31,40 +29,28 @@ public class BoundingBox {
      * Constructs and empty BoundingBox that can be expanded
      */
     public BoundingBox() {
-        this.x = 0;
-        this.y = 0;
-        this.width = -1;
-        this.height= -1;
-    }
-    @JsonIgnore
-    public boolean isValid() {
-        return height > 0 && width > 0;
+        this.x = Integer.MAX_VALUE;
+        this.y = Integer.MAX_VALUE;
+        this.width = 0;
+        this.height= 0;
     }
 
     public boolean contains(int px, int py) {
         long right = x+width;
         long top = y+height;
-        return (px >= x && px < right) && (py >= y && py < top);
+        return (px >= x && px <= right) && (py >= y && py <= top);
     }
 
     public BoundingBox intersect(BoundingBox other) {
         int xnew = Math.max(x, other.x);
         int ynew  = Math.max(y, other.y);
         int rightnew = Math.min(x + width, other.x + other.width);
-        int bottomnew = Math.min(y + height, other.y + other.height);
-        return new BoundingBox(xnew, ynew, Math.max(rightnew -  xnew, 0), Math.max(bottomnew - ynew, 0));
+        int topnew = Math.min(y + height, other.y + other.height);
+        return new BoundingBox(xnew, ynew, Math.max(rightnew -  xnew, 0), Math.max(topnew - ynew, 0));
     }
 
-    public void expandIfNeeded(int px, int py) {
-        if(width < 0){
-            x = px;
-            y = py;
-            height = 0;
-            width = 0;
-        }
-        x = Math.min(x, px);
-        y = Math.min(y, py);
-        width = Math.max(px-x, width);
-        height = Math.max(py-y, height);
+    @Override
+    public String toString(){
+        return "( "+x+" , "+y+" , "+width+" , "+height+" )";
     }
 }

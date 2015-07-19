@@ -17,16 +17,20 @@ public class DrawData {
     private final IntArrayList edgeData;
     private static final int EDGE_RECORD_SIZE = 3;
     private static final int VERTEX_RECORD_SIZE = 2;
-    private final BoundingBox bbox;
+    private BoundingBox bbox;
 
     public  DrawData() {
         this.vertexData = new IntArrayList();
         this.edgeData = new IntArrayList();
-        this.bbox = new BoundingBox();
+        this.bbox = null;
     }
 
     public int size() {
         return edgeData.size()/EDGE_RECORD_SIZE;
+    }
+
+    public int numVertices() {
+        return vertexData.size()/VERTEX_RECORD_SIZE;
     }
 
     public int getX(int vertexId) {
@@ -67,7 +71,22 @@ public class DrawData {
 
     private void addVertex(int x, int y){
         vertexData.add(x, y);
-        bbox.expandIfNeeded(x, y);
+    }
+
+    private void computeBundingBox(){
+        int minX = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int minY = Integer.MAX_VALUE;
+        int maxY = Integer.MIN_VALUE;
+        for(int i = 0; i < numVertices(); i++){
+            int x = getX(i);
+            minX = Math.min(minX, x);
+            maxX = Math.max(maxX, x);
+            int y = getY(i);
+            minY = Math.min(minY, y);
+            maxY = Math.max(maxY, y);
+        }
+        bbox = new BoundingBox(minX, minY, maxX-minX, maxY-minY);
     }
 
     /**
@@ -84,10 +103,11 @@ public class DrawData {
             int x2 = draw.getX2(edgeId);
             int y2 = draw.getY2(edgeId);
             int type = draw.getType(edgeId);
-            vertexData.add(x1, y1, x2, y2);
-
+            addVertex(x1, y1);
+            addVertex(x2, y2);
             edgeData.add(vertexData.size()/VERTEX_RECORD_SIZE - 2, vertexData.size()/VERTEX_RECORD_SIZE - 1, type);
         }
+        computeBundingBox();
     }
 
     private void addEdge(int srcId, int trgtId, int type){
@@ -101,6 +121,7 @@ public class DrawData {
             throw new JsonParseException("draw is not an object", jp.getCurrentLocation());
         }
         String fieldName;
+        int minX = Integer.MAX_VALUE;
         while (jp.nextToken() != JsonToken.END_OBJECT) {
             fieldName = jp.getCurrentName();
             token = jp.nextToken();
@@ -110,7 +131,9 @@ public class DrawData {
                     throw new JsonParseException("path is no array", jp.getCurrentLocation());
                 }
                 while (jp.nextToken() != JsonToken.END_ARRAY) {
-                    res.addVertex(jp.getIntValue(), jp.nextIntValue(0));
+                    int x = jp.getIntValue();
+                    int y = jp.nextIntValue(0);
+                    res.addVertex(x, y);
                 }
 
             } else if ("edges".equals(fieldName)) {
@@ -123,6 +146,7 @@ public class DrawData {
                 }
             }
         }
+        res.computeBundingBox();
         return res;
     }
 

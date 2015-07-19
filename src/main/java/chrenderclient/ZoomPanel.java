@@ -52,6 +52,7 @@ public final class ZoomPanel extends JPanel {
     private boolean justDragged = false;
 
     public boolean showPriorityNodes = false;
+    public boolean showBundleRects = true;
     private double extendFactor = 3;
     private double changeFactor = 1.8;
 
@@ -159,17 +160,29 @@ public final class ZoomPanel extends JPanel {
     }
 
     private void drawCoreNodes(Graphics2D g, Transformer trans) {
-        g.setColor(Color.MAGENTA);
+        g.setColor(Color.RED);
         for(int i = 0; i < core.getNodeCount(); ++i) {
             g.fillRect(trans.toDrawX(core.getX(i))-2, trans.toDrawY(core.getY(i))-2, 4, 4);
         }
     }
 
-    private void drawBundleNodes(Graphics2D g, Transformer trans, Bundle bundle) {
+    private void drawBundleRect(Graphics2D g, Transformer trans, Bundle bundle) {
         g.setColor(Color.YELLOW);
+        BoundingBox bbox = bundle.getBbox();
+        g.drawRect(trans.toDrawX(bbox.x), trans.toDrawY(bbox.y), trans.toDrawDist(bbox.width), trans.toDrawDist(bbox.height));
+    }
+
+    private void drawBundleNodes(Graphics2D g, Transformer trans, Bundle bundle) {
+
         for (int i = 0; i < bundle.nodes.length; ++i) {
             Node n = bundle.nodes[i];
             if(n.hasCoordinates()) {
+                BoundingBox bbox = bundle.getBbox();
+                if(!bbox.contains(n.getX(), n.getY())){
+                    g.setColor(Color.CYAN);
+                } else {
+                    g.setColor(Color.YELLOW);
+                }
                 g.fillRect(trans.toDrawX(n.getX()) - 2, trans.toDrawY(n.getY()) - 2, 4, 4);
             }
 
@@ -239,6 +252,9 @@ public final class ZoomPanel extends JPanel {
             //bundleBaseColor = bundleBaseColor.darker();
             if(showPriorityNodes) {
                 drawBundleNodes(g2D, trans, bundle);
+            }
+            if(showBundleRects){
+                drawBundleRect(g2D, trans, bundle);
             }
         }
 
