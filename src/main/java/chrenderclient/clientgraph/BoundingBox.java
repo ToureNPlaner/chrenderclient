@@ -26,6 +26,14 @@ public class BoundingBox {
     }
 
     /**
+     * Checks whether the BoundingBox has zero area
+     * @return
+     */
+    public boolean isEmpty(){
+        return width == 0 || height == 0;
+    }
+
+    /**
      * Constructs and empty BoundingBox that can be expanded
      */
     public BoundingBox() {

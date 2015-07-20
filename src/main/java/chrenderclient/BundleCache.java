@@ -57,26 +57,28 @@ public class BundleCache implements Iterable<Bundle> {
         BoundingBox freshBBox = fresh.getBbox();
         BoundingBox oldBBox = old.getBbox();
         BoundingBox intersection = oldBBox.intersect(freshBBox);
-        double oldArea = (double)oldBBox.width*(double)oldBBox.height;
-        double intersectArea = (double)intersection.width*(double)intersection.height;
-        double big, small;
-        if(oldArea > intersectArea){
-            big = oldArea;
-            small = intersectArea;
-        } else {
-            big = intersectArea;
-            small = oldArea;
+        if(intersection.isEmpty()){
+            return 1.0;
         }
-        double useArea = 1 - small/big;
+        double oldArea = (double)oldBBox.width*(double)oldBBox.height;
+        double freshArea = (double)freshBBox.width*(double)freshBBox.height;
+        double intersectArea = (double)intersection.width*(double)intersection.height;
+        double diffArea = 1.0 - intersectArea/(Math.max(oldArea, freshArea));
+        System.out.println("diffArea: "+diffArea);
 
-        return useArea;
+        return diffArea;
     }
 
     public void offer(Bundle bundle){
+        // Don't care about empty bundles
+        if(bundle.getBbox().isEmpty()){
+            return;
+        }
+
         // Warm up phase
         if(n < bundles.length){
             if(n <= 1){
-                // The first two we simply add
+                // The first two we simply add, unless they are empty
                 bundles[n] = bundle;
                 n++;
             } else {
@@ -86,13 +88,14 @@ public class BundleCache implements Iterable<Bundle> {
                 double minDiff = 1.0;
                 for(int i = 1; i < n; i++){
                     double diff = rateDifference(bundle, bundles[i]);
-                    if(diff < minDiff){
+                    if(diff <= minDiff){
                         minDiff = diff;
                     }
                 }
                 if(minDiff > threshold){
                     insert = n;
                     n++;
+                    System.out.println("Adding bundle");
                 }
                 bundles[insert] = bundle;
             }
@@ -104,7 +107,6 @@ public class BundleCache implements Iterable<Bundle> {
         double minDiff = 1.0;
         for(int i = 1; i < n; i++){
             double diff = rateDifference(bundle, bundles[i]);
-            System.out.println("Diff: " + diff);
             if(diff <= minDiff){
                 minDiff = diff;
                 minIndex = i;
@@ -112,6 +114,7 @@ public class BundleCache implements Iterable<Bundle> {
         }
         if(minDiff > threshold) {
             bundles[minIndex] = bundle;
+            System.out.println("Replacing old bundle");
             return;
         }
         bundles[0] = bundle;
