@@ -71,6 +71,7 @@ public class ZoomForm extends javax.swing.JFrame {
         RunDijkstraMenuItem = new javax.swing.JMenuItem();
         OptionMenu = new javax.swing.JMenu();
         ShowPriorityNodesMenuItem = new javax.swing.JMenuItem();
+        ShowBundleRectsMenuItem = new javax.swing.JMenuItem();
         ToggleAutoLevelMenuItem = new javax.swing.JMenuItem();
         TestMenu = new javax.swing.JMenu();
 
@@ -182,6 +183,13 @@ public class ZoomForm extends javax.swing.JFrame {
             }
         });
 
+        ShowBundleRectsMenuItem.setText("Show Bundle Rects");
+        ShowBundleRectsMenuItem.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                ShowBundleRectsNodesMenuItemActionPerformed(evt);
+            }
+        });
+
         ToggleAutoLevelMenuItem.setText("Toggle Auto Level");
         ToggleAutoLevelMenuItem.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -189,6 +197,7 @@ public class ZoomForm extends javax.swing.JFrame {
             }
         });
         OptionMenu.add(ShowPriorityNodesMenuItem);
+        OptionMenu.add(ShowBundleRectsMenuItem);
         OptionMenu.add(ToggleAutoLevelMenuItem);
 
         MenuBar.add(OptionMenu);
@@ -262,6 +271,11 @@ public class ZoomForm extends javax.swing.JFrame {
         repaint();
     }//GEN-LAST:event_ShowPriorityNodesMenuItemActionPerformed
 
+    private void ShowBundleRectsNodesMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ShowPriorityNodesMenuItemActionPerformed
+        zoomPanel.showBundleRects = !zoomPanel.showBundleRects;
+        repaint();
+    }//GEN-LAST:event_ShowPriorityNodesMenuItemActionPerformed
+
     private void GridTestMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_GridTestMenuItemActionPerformed
 
     }//GEN-LAST:event_GridTestMenuItemActionPerformed
@@ -328,6 +342,7 @@ public class ZoomForm extends javax.swing.JFrame {
     private javax.swing.JMenuItem AutoListImageItem;
     private javax.swing.JMenu SelectionMenu;
     private javax.swing.JMenuItem ShowPriorityNodesMenuItem;
+    private javax.swing.JMenuItem ShowBundleRectsMenuItem;
     private javax.swing.JMenuItem ToggleAutoLevelMenuItem;
     private javax.swing.JMenu TestMenu;
     private javax.swing.JMenuItem UndoLastMarkerMenuItem;
