@@ -69,7 +69,7 @@ public final class ZoomPanel extends JPanel {
         this.tp = tpClient;
         this.coreSize = coreSize;
         this.points = new ArrayList<Point>();
-        this.bundles = new BundleCache(7, 0.99);
+        this.bundles = new BundleCache(1, 0.99);
         this.paths = new ArrayList<>();
         this.router = null;
 

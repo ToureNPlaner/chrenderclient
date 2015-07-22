@@ -7,24 +7,11 @@ package chrenderclient.clientgraph;
  * Created by niklas on 09.04.15.
  */
 public final class Node {
-    private final int x;
-    private final int y;
+    private int x;
+    private int y;
     private final int oId;
     private int upIndex;
     private int downIndex;
-
-    /**
-     * Constructs a Node with coordinates
-     *
-     * @param x
-     * @param y
-     * @param originalId
-     */
-    public Node(int x, int y, int originalId) {
-        this.x = x;
-        this.y = y;
-        this.oId = originalId;
-    }
 
     /**
      *  Constructs a Node without coordinates that is outside the visible bounding box.
@@ -66,5 +53,10 @@ public final class Node {
 
     public void setDownIndex(int downIndex) {
         this.downIndex = downIndex;
+    }
+
+    protected void setCoords(int x, int y) {
+        this.x = x;
+        this.y = y;
     }
 }

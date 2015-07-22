@@ -69,7 +69,7 @@ public class Router {
         this.bestPath = null;
         findSourceAndTarget(srcX, srcY, trgtX, trgtY);
         System.out.println(Utils.took("finding ids", start));
-        System.out.println("srcId: " + srcId + ((srcBundle != null) ? " (bundle)" : "(core)") + " trgtId: " + trgtId + ((trgtBundle != null) ? " (bundle)" : "(core)"));
+        System.out.println("srcId: " + srcId + ((srcBundle != null) ? " (bundle)" : "(core)") + " trgtId: " + trgtId + ((trgtBundle != null) ? " (bundle)" : "(core) ")+" crossBundle? "+(srcBundle != trgtBundle));
         // Scan upGraph
         int[] upDists = null;
         int[] upPreds = null;
@@ -210,7 +210,7 @@ public class Router {
         int bestDownId = -1;
         int bestUpId = -1;
         int mergeBestDist = Integer.MAX_VALUE;
-        DrawData path = null;
+
 
         int i = 0;
         int j = 0;
@@ -232,6 +232,7 @@ public class Router {
                 ++j;
             }
         }
+        DrawData path = null;
         if (mergeBestDist < Integer.MAX_VALUE) {
             System.out.println("Best Dist below core: " + mergeBestDist + " bestUpId: " + bestUpId + " bestDownId: " + bestDownId);
             path = new DrawData();

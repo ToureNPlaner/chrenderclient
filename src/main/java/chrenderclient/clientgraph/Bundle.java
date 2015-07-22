@@ -113,6 +113,7 @@ public class Bundle {
         String fieldName;
         JsonToken token;
         Bundle bundle = null;
+        boolean nodeIdsRead = false;
         while (true) {
             //move to next element or END_OBJECT/EOF
             token = jp.nextToken();
@@ -128,8 +129,14 @@ public class Bundle {
                         throw new JsonParseException("Need to see head before draw", jp.getCurrentLocation());
                     }
                     bundle.draw = DrawData.readDrawData(jp, token);
-                } else if ("edges".equals(fieldName)) {
+                } else if("oNodeIds".equals(fieldName)){
                     if (bundle == null || bundle.draw == null) {
+                        throw new JsonParseException("Need to see head and draw before original node ids", jp.getCurrentLocation());
+                    }
+                    readOriginalNodeIds(jp, token, bundle);
+                    nodeIdsRead = true;
+                } else if ("edges".equals(fieldName)) {
+                    if (bundle == null || bundle.draw == null || nodeIdsRead == false) {
                         throw new JsonParseException("Need to see head and draw before edges", jp.getCurrentLocation());
                     }
                     readEdges(jp, token, bundle);
@@ -148,6 +155,23 @@ public class Bundle {
         }
         return bundle;
 
+    }
+
+    private static void readOriginalNodeIds(JsonParser jp, JsonToken token, Bundle bundle) throws IOException {
+        if (token != JsonToken.START_ARRAY) {
+            throw new JsonParseException("oNodeIds is no Json array", jp.getCurrentLocation());
+        }
+        int i = 0;
+        int oId;
+        while (jp.nextToken() != JsonToken.END_ARRAY) {
+            oId = jp.getIntValue();
+            bundle.nodes[i] = new Node(oId);
+            i++;
+        }
+
+        if(i < bundle.nodes.length){
+            throw new JsonParseException("oNodeIds has less entries than nodes", jp.getCurrentLocation());
+        }
     }
 
     private static void readEdges(JsonParser jp, JsonToken token, Bundle bundle) throws IOException {
@@ -171,10 +195,10 @@ public class Bundle {
                 while ((token = jp.nextToken()) != JsonToken.END_ARRAY) {
                     Edge e = Edge.readEdge(jp, token);
                     // We need to extract the x, y coordinates of the source node, guaranteed to be in PrioResult
-                    // and not in the core
+                    // and not in the core, every node is a source somewhere (no trapping streets)
                     if (e.src != currSrc) {
                         currSrc = e.src;
-                        setOrCreateSourceNode(bundle, edgeNum, currSrc, e);
+                        setSourceCoords(bundle, edgeNum, currSrc, e);
                     }
                     bundle.upEdges[edgeNum] = e;
                     edgeNum++;
@@ -196,7 +220,7 @@ public class Bundle {
                     // and not in the core
                     if (e.trgt != currTrgt) {
                         currTrgt = e.trgt;
-                        setOrCreateTargetNode(bundle, edgeNum, currTrgt, e);
+                        bundle.nodes[currTrgt - bundle.coreSize].setDownIndex(edgeNum);
                     }
                     bundle.downEdges[edgeNum] = e;
                     edgeNum++;
@@ -208,35 +232,14 @@ public class Bundle {
         }
     }
 
-    private static void setOrCreateSourceNode(Bundle bundle, int edgeNum, int currSrc, Edge e) {
+    private static void setSourceCoords(Bundle bundle, int edgeNum, int currSrc, Edge e) {
         int index = currSrc - bundle.coreSize;
-        if (bundle.nodes[index] == null) {
-            Node node;
-            if (e.path.size() > 0) {
-                int firstDrawIndex = e.path.get(0);
-                node = new Node(bundle.draw.getX1(firstDrawIndex), bundle.draw.getY1(firstDrawIndex), currSrc);
-            } else { // Node not in the visible area thus has no coordinates
-                node = new Node(currSrc);
-            }
-            bundle.nodes[index] = node;
+        assert bundle.nodes[index] != null;
+        if(e.path.size() > 0) {
+            int firstDrawIndex = e.path.get(0);
+            bundle.nodes[index].setCoords(bundle.draw.getX1(firstDrawIndex), bundle.draw.getY1(firstDrawIndex));
         }
         bundle.nodes[index].setUpIndex(edgeNum);
-    }
-
-    private static void setOrCreateTargetNode(Bundle bundle, int edgeNum, int currTrgt, Edge e) {
-        int index = currTrgt - bundle.coreSize;
-        if (bundle.nodes[index] == null) {
-            Node node;
-            if (e.path.size() > 0) {
-                int lastDrawIndex = e.path.get(e.path.size() - 1);
-                node = new Node(bundle.draw.getX2(lastDrawIndex), bundle.draw.getY2(lastDrawIndex), currTrgt);
-            } else { // Node not in the visible area thus has no coordinates
-                node = new Node(currTrgt);
-            }
-
-            bundle.nodes[index] = node;
-        }
-        bundle.nodes[index].setDownIndex(edgeNum);
     }
 
     public BoundingBox getBbox() {
