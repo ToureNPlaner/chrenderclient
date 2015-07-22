@@ -172,7 +172,7 @@ public final class CoreGraph {
                             int firstDrawEdgeId = path.get(0);
                             result.setNodeCoords(src, draw.getX1(firstDrawEdgeId), draw.getY1(firstDrawEdgeId));
                             int lastDrawEdgeId = path.get(path.size()-1);
-                            result.setNodeCoords(trgt, draw.getX1(lastDrawEdgeId), draw.getY1(lastDrawEdgeId));
+                            result.setNodeCoords(trgt, draw.getX2(lastDrawEdgeId), draw.getY2(lastDrawEdgeId));
                         }
                         numEdges++;
                     }

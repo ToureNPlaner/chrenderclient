@@ -20,18 +20,24 @@ public class Bundle {
     public final Node[] nodes;
     public final int coreSize;
     public final int level;
+    public final double minLen;
+    public final double maxLen;
+    public final double maxRatio;
     private DrawData draw;
 
     // Debug data
     public long requestSize;
 
 
-    private Bundle(int nodeCount, int upEdgeCount, int downEdgeCount, int coreSize, int level) {
+    private Bundle(int nodeCount, int upEdgeCount, int downEdgeCount, int coreSize, int level, double minLen, double maxLen, double maxRatio) {
         nodes = new Node[nodeCount];
         upEdges = new Edge[upEdgeCount];
         downEdges = new Edge[downEdgeCount];
         this.coreSize = coreSize;
         this.level = level;
+        this.minLen = minLen;
+        this.maxLen = maxLen;
+        this.maxRatio = maxRatio;
         this.draw = null;
     }
 
@@ -46,6 +52,9 @@ public class Bundle {
         int downEdgeCount = -1;
         int coreSize = 0;
         int level = 0;
+        double minLen = 20;
+        double maxLen = 400;
+        double maxRatio = 0.01;
         if (token != JsonToken.START_OBJECT) {
             throw new JsonParseException("head is no object", jp.getCurrentLocation());
         }
@@ -62,6 +71,12 @@ public class Bundle {
                 coreSize = jp.getIntValue();
             } else if ("level".equals(fieldName)) {
                 level = jp.getIntValue();
+            } else if ("minLen".equals(fieldName)) {
+                minLen = jp.getDoubleValue();
+            } else if ("maxLen".equals(fieldName)) {
+                maxLen = jp.getDoubleValue();
+            } else if ("maxRatio".equals(fieldName)) {
+                maxRatio = jp.getDoubleValue();
             } else {
                 throw new JsonParseException("Unexpected token " + token, jp.getCurrentLocation());
             }
@@ -71,7 +86,7 @@ public class Bundle {
             throw new JsonParseException("Head not complete", jp.getCurrentLocation());
         }
 
-        return new Bundle(nodeCount, upEdgeCount, downEdgeCount, coreSize, level);
+        return new Bundle(nodeCount, upEdgeCount, downEdgeCount, coreSize, level, minLen, maxLen, maxRatio);
     }
 
 
