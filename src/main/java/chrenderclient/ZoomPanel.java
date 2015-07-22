@@ -237,24 +237,29 @@ public final class ZoomPanel extends JPanel {
         }
 
         for (Bundle bundle : bundles) {
-            start = System.nanoTime();
-            BundleDrawInfo bundleDraw = new BundleDrawInfo();
-            bundleDraw.requestSize = Utils.sizeForHumans(bundle.requestSize);
-            bundleDraw.level = bundle.level;
-            bundleDraw.nodes = bundle.nodes.length;
-            bundleDraw.bundleBBox = bundle.getBbox();
-            bundleDraw.upEdges = bundle.upEdges.length;
-            bundleDraw.downEdges = bundle.downEdges.length;
-            bundleDraw.lines = bundle.getDraw().size();
-            bundleDraw.linesDrawn = draw(g2D, bundle.getDraw(), trans, mediumStreetStroke, 0.6f);
-            System.out.println(Utils.took("Drawing Bundle", start));
-            drawInfo.bundles.add(bundleDraw);
-            //bundleBaseColor = bundleBaseColor.darker();
-            if(showPriorityNodes) {
-                drawBundleNodes(g2D, trans, bundle);
-            }
-            if(showBundleRects){
-                drawBundleRect(g2D, trans, bundle);
+            // Draw only visible bundles, that are finer than what we currently want
+            if (!bundle.getBbox().intersect(bbox).isEmpty()
+                    && bundle.minLen <= trans.toRealDist(minLen)
+                    && bundle.maxLen <= trans.toRealDist(maxLen)) {
+                start = System.nanoTime();
+                BundleDrawInfo bundleDraw = new BundleDrawInfo();
+                bundleDraw.requestSize = Utils.sizeForHumans(bundle.requestSize);
+                bundleDraw.level = bundle.level;
+                bundleDraw.nodes = bundle.nodes.length;
+                bundleDraw.bundleBBox = bundle.getBbox();
+                bundleDraw.upEdges = bundle.upEdges.length;
+                bundleDraw.downEdges = bundle.downEdges.length;
+                bundleDraw.lines = bundle.getDraw().size();
+                bundleDraw.linesDrawn = draw(g2D, bundle.getDraw(), trans, mediumStreetStroke, 0.6f);
+                System.out.println(Utils.took("Drawing Bundle", start));
+                drawInfo.bundles.add(bundleDraw);
+                //bundleBaseColor = bundleBaseColor.darker();
+                if (showPriorityNodes) {
+                    drawBundleNodes(g2D, trans, bundle);
+                }
+                if (showBundleRects) {
+                    drawBundleRect(g2D, trans, bundle);
+                }
             }
         }
 
