@@ -112,8 +112,10 @@ public class Router {
 
         if(!done) {
             // Dijkstra on core
+
             System.out.println("Going into CoreDijkstra with " + coreFwdSettled.size() + " settled nodes");
             start = System.nanoTime();
+            Arrays.fill(corePreds, -1);
             int bestId = coreDijkstra(coreFwdDists, coreBwdDists, corePreds, coreFwdSettled);
             System.out.println(Utils.took("coreDijkstra", start));
             if (bestId < 0) {
@@ -283,7 +285,7 @@ public class Router {
 
         // core graph
         currNode = bestId;
-        while (coreEnterPreds[currNode] == -1) {
+        while (corePreds[currNode] != -1) {
             int currEdgeId = corePreds[currNode];
             // if order mattered added at start
             path.addFromIndexed(core.getDraw(), core.getPath(currEdgeId));
@@ -341,7 +343,7 @@ public class Router {
                     bestId = currNode;
                     dijkstraBestDist = dist;
                 }
-                continue;
+                // No continue here, leave nodes can still lead to better leave nodes as the core is flattened
             }
 
             for (int outEdgeNum = 0; outEdgeNum < core.getOutEdgeCount(currNode); ++outEdgeNum) {
