@@ -113,7 +113,7 @@ public final class CoreGraph {
         return draw;
     }
 
-    public static CoreGraph readJSON(ObjectMapper mapper, InputStream in) throws IOException{
+    public static CoreGraph readJson(ObjectMapper mapper, InputStream in) throws IOException{
         final JsonParser jp = mapper.getFactory().createParser(in);
         jp.setCodec(mapper);
 
@@ -141,7 +141,7 @@ public final class CoreGraph {
                 } else if ("edgeCount".equals(fieldname)) {
                     edgeCount = jp.getIntValue();
                 } else if ("draw".equals(fieldname)) {
-                    draw = DrawData.readDrawData(jp, token);
+                    draw = DrawData.readJson(jp, token);
                 } else if ("edges".equals(fieldname)) {
                     if (edgeCount < 0 || nodeCount < 0 || draw == null) {
                         throw new JsonParseException("nodeCount, edgeCount and draw need to come before the edges themselves", jp.getCurrentLocation());

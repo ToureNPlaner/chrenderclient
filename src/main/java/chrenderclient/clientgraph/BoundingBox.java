@@ -1,5 +1,7 @@
 package chrenderclient.clientgraph;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 /**
  * Created by niklas on 14.05.15.
  */
@@ -29,6 +31,7 @@ public class BoundingBox {
      * Checks whether the BoundingBox has zero area
      * @return
      */
+    @JsonIgnore
     public boolean isEmpty(){
         return width == 0 || height == 0;
     }

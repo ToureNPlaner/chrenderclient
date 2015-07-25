@@ -69,7 +69,7 @@ public final class ZoomPanel extends JPanel {
         this.tp = tpClient;
         this.coreSize = coreSize;
         this.points = new ArrayList<Point>();
-        this.bundles = new BundleCache(1, 0.99);
+        this.bundles = new BundleCache(7, 0.9);
         this.paths = new ArrayList<>();
         this.router = null;
 
@@ -168,7 +168,7 @@ public final class ZoomPanel extends JPanel {
 
     private void drawBundleRect(Graphics2D g, Transformer trans, Bundle bundle) {
         g.setColor(Color.YELLOW);
-        BoundingBox bbox = bundle.getBbox();
+        BoundingBox bbox = bundle.bbox;
         g.drawRect(trans.toDrawX(bbox.x), trans.toDrawY(bbox.y), trans.toDrawDist(bbox.width), trans.toDrawDist(bbox.height));
     }
 
@@ -177,7 +177,7 @@ public final class ZoomPanel extends JPanel {
         for (int i = 0; i < bundle.nodes.length; ++i) {
             Node n = bundle.nodes[i];
             if(n.hasCoordinates()) {
-                BoundingBox bbox = bundle.getBbox();
+                BoundingBox bbox = bundle.bbox;
                 if(!bbox.contains(n.getX(), n.getY())){
                     g.setColor(Color.CYAN);
                 } else {
@@ -187,6 +187,32 @@ public final class ZoomPanel extends JPanel {
             }
 
         }
+    }
+
+    private final int drawBundle(Graphics2D g2D, Bundle bundle, Transformer trans, BasicStroke stroke, float hue) {
+        int linesDrawn = 0;
+        DrawData draw = bundle.getDraw();
+        BoundingBox bbox = bundle.bbox;
+        for (int drawElement = 0; drawElement < draw.size(); drawElement++) {
+            int x1 = draw.getX1(drawElement);
+            int y1 = draw.getY1(drawElement);
+            int x2 = draw.getX2(drawElement);
+            int y2 = draw.getY2(drawElement);
+            // Don't draw edges outside the request bbox, they are only for drawing paths
+            if(bbox.contains(x1, y1) || bbox.contains(x2, y2) ) {
+                int dx1 = trans.toDrawX(x1);
+                int dy1 = trans.toDrawY(y1);
+                int dx2 = trans.toDrawX(x2);
+                int dy2 = trans.toDrawY(y2);
+                if (drawArea.contains(dx1, dy1) || drawArea.contains(dx2, dy2)) {
+                    g2D.setColor(Color.getHSBColor(hue, draw.getType(drawElement) / 100.0f, 1.0f));
+                    g2D.setStroke(stroke);
+                    g2D.drawLine(dx1, dy1, dx2, dy2);
+                    linesDrawn++;
+                }
+            }
+        }
+        return linesDrawn;
     }
 
     private final int draw(Graphics2D g2D, DrawData draw, Transformer trans, BasicStroke stroke, float hue) {
@@ -238,7 +264,7 @@ public final class ZoomPanel extends JPanel {
 
         for (Bundle bundle : bundles) {
             // Draw only visible bundles, that are finer than what we currently want
-            if (!bundle.getBbox().intersect(bbox).isEmpty()
+            if (!bundle.bbox.intersect(bbox).isEmpty()
                     && bundle.minLen <= trans.toRealDist(minLen)
                     && bundle.maxLen <= trans.toRealDist(maxLen)) {
                 start = System.nanoTime();
@@ -246,11 +272,11 @@ public final class ZoomPanel extends JPanel {
                 bundleDraw.requestSize = Utils.sizeForHumans(bundle.requestSize);
                 bundleDraw.level = bundle.level;
                 bundleDraw.nodes = bundle.nodes.length;
-                bundleDraw.bundleBBox = bundle.getBbox();
+                bundleDraw.bundleBBox = bundle.bbox;
                 bundleDraw.upEdges = bundle.upEdges.length;
                 bundleDraw.downEdges = bundle.downEdges.length;
                 bundleDraw.lines = bundle.getDraw().size();
-                bundleDraw.linesDrawn = draw(g2D, bundle.getDraw(), trans, mediumStreetStroke, 0.6f);
+                bundleDraw.linesDrawn = drawBundle(g2D, bundle, trans, mediumStreetStroke, 0.6f);
                 System.out.println(Utils.took("Drawing Bundle", start));
                 drawInfo.bundles.add(bundleDraw);
                 //bundleBaseColor = bundleBaseColor.darker();

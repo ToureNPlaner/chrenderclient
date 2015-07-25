@@ -19,6 +19,7 @@ public class Bundle {
     public final Edge[] downEdges;
     public final Node[] nodes;
     public final int coreSize;
+    public final BoundingBox bbox;
     public final int level;
     public final double minLen;
     public final double maxLen;
@@ -29,11 +30,12 @@ public class Bundle {
     public long requestSize;
 
 
-    private Bundle(int nodeCount, int upEdgeCount, int downEdgeCount, int coreSize, int level, double minLen, double maxLen, double maxRatio) {
+    private Bundle(int nodeCount, int upEdgeCount, int downEdgeCount, int coreSize, BoundingBox bbox,int level, double minLen, double maxLen, double maxRatio) {
         nodes = new Node[nodeCount];
         upEdges = new Edge[upEdgeCount];
         downEdges = new Edge[downEdgeCount];
         this.coreSize = coreSize;
+        this.bbox = bbox;
         this.level = level;
         this.minLen = minLen;
         this.maxLen = maxLen;
@@ -43,6 +45,33 @@ public class Bundle {
 
     public DrawData getDraw() {
         return draw;
+    }
+
+    private static BoundingBox readBoundingBox(JsonParser jp, JsonToken token) throws IOException {
+        String fieldName;
+        int x = 0;
+        int y = 0;
+        int width = 0;
+        int height = 0;
+        if (token != JsonToken.START_OBJECT) {
+            throw new JsonParseException("head is no object", jp.getCurrentLocation());
+        }
+        while (jp.nextToken() != JsonToken.END_OBJECT) {
+            fieldName = jp.getCurrentName();
+            token = jp.nextToken();
+            if ("x".equals(fieldName)) {
+                x = jp.getIntValue();
+            } else if ("y".equals(fieldName)) {
+                y = jp.getIntValue();
+            } else if ("width".equals(fieldName)) {
+                width = jp.getIntValue();
+            } else if ("height".equals(fieldName)) {
+                height = jp.getIntValue();
+            } else {
+                throw new JsonParseException("Unexpected token " + token, jp.getCurrentLocation());
+            }
+        }
+        return new BoundingBox(x, y, width, height);
     }
 
     private static Bundle readPrioResultHead(JsonParser jp, JsonToken token) throws IOException {
@@ -55,6 +84,8 @@ public class Bundle {
         double minLen = 20;
         double maxLen = 400;
         double maxRatio = 0.01;
+        BoundingBox bbox = null;
+
         if (token != JsonToken.START_OBJECT) {
             throw new JsonParseException("head is no object", jp.getCurrentLocation());
         }
@@ -77,6 +108,8 @@ public class Bundle {
                 maxLen = jp.getDoubleValue();
             } else if ("maxRatio".equals(fieldName)) {
                 maxRatio = jp.getDoubleValue();
+            } else if ("bbox".equals(fieldName)) {
+                bbox = readBoundingBox(jp, token);
             } else {
                 throw new JsonParseException("Unexpected token " + token, jp.getCurrentLocation());
             }
@@ -86,11 +119,11 @@ public class Bundle {
             throw new JsonParseException("Head not complete", jp.getCurrentLocation());
         }
 
-        return new Bundle(nodeCount, upEdgeCount, downEdgeCount, coreSize, level, minLen, maxLen, maxRatio);
+        return new Bundle(nodeCount, upEdgeCount, downEdgeCount, coreSize, bbox, level, minLen, maxLen, maxRatio);
     }
 
 
-    public static Bundle readResultData(ObjectMapper mapper, InputStream in) throws IOException {
+    public static Bundle readJson(ObjectMapper mapper, InputStream in) throws IOException {
 
         /*
         Prio Result looks something like this:
@@ -128,7 +161,7 @@ public class Bundle {
                     if (bundle == null) {
                         throw new JsonParseException("Need to see head before draw", jp.getCurrentLocation());
                     }
-                    bundle.draw = DrawData.readDrawData(jp, token);
+                    bundle.draw = DrawData.readJson(jp, token);
                 } else if("oNodeIds".equals(fieldName)){
                     if (bundle == null || bundle.draw == null) {
                         throw new JsonParseException("Need to see head and draw before original node ids", jp.getCurrentLocation());
@@ -240,9 +273,5 @@ public class Bundle {
             bundle.nodes[index].setCoords(bundle.draw.getX1(firstDrawIndex), bundle.draw.getY1(firstDrawIndex));
         }
         bundle.nodes[index].setUpIndex(edgeNum);
-    }
-
-    public BoundingBox getBbox() {
-        return draw.getBbox();
     }
 }

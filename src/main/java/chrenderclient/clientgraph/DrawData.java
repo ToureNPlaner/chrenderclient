@@ -100,7 +100,7 @@ public class DrawData {
         edgeData.add(srcId, trgtId, type);
     }
 
-    public static DrawData readDrawData(JsonParser jp, JsonToken token) throws IOException {
+    public static DrawData readJson(JsonParser jp, JsonToken token) throws IOException {
         DrawData res = new DrawData();
         // Should be on START_OBJECT
         if (token != JsonToken.START_OBJECT) {
