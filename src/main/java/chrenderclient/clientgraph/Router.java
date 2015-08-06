@@ -227,9 +227,9 @@ public class Router {
                 ++i;
                 ++j;
             } else if (srcBundle.nodes[i].getOriginalId() < trgtBundle.nodes[j].getOriginalId()) {
-                ++i;
-            } else if (srcBundle.nodes[i].getOriginalId() > trgtBundle.nodes[j].getOriginalId()) {
                 ++j;
+            } else if (srcBundle.nodes[i].getOriginalId() > trgtBundle.nodes[j].getOriginalId()) {
+                ++i;
             }
         }
         DrawData path = null;
