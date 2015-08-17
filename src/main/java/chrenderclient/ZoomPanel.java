@@ -58,9 +58,9 @@ public final class ZoomPanel extends JPanel {
 
 
     private static final BasicStroke smallStreetStroke = new BasicStroke(1F);
-    private static BasicStroke mediumStreetStroke = new BasicStroke(1.1F);
-    private static BasicStroke largeStreetStroke = new BasicStroke(1.4F);
-    private static BasicStroke pathStroke = new BasicStroke(2.4F);
+    private static final BasicStroke mediumStreetStroke = new BasicStroke(1.1F);
+    private static final BasicStroke largeStreetStroke = new BasicStroke(1.4F);
+    private static final BasicStroke pathStroke = new BasicStroke(2.4F);
 
 
     public ZoomPanel(TPClient tpClient, int coreSize) {
@@ -421,10 +421,10 @@ public final class ZoomPanel extends JPanel {
     }
 
     private void setView() {
-        int x = 6;
-        int y = 49;
-        int width = (int) (getWidth() * 50.0);
-        int height = (int) (getHeight() * 50.0);
+        int x = -431560;
+        int y =  -119163;
+        int width = 1700611;
+        int height = 850305;
         bbox = new BoundingBox(x, y, width, height);
     }
 
