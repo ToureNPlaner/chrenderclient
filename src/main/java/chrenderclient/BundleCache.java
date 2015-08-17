@@ -42,10 +42,11 @@ public class BundleCache implements Iterable<Bundle> {
     }
 
 
-    public BundleCache(int cacheSize, double threshold){
+    public BundleCache(int cacheSize, double threshold, int minEdgeCount){
         bundles = new Bundle[cacheSize];
         n = 0;
-        this.threshold = threshold;
+        this.overlapThreshold = threshold;
+        this.minEdgeCount = minEdgeCount;
     }
 
     /*
@@ -92,7 +93,7 @@ public class BundleCache implements Iterable<Bundle> {
                         minDiff = diff;
                     }
                 }
-                if(minDiff > threshold){
+                if(minDiff > overlapThreshold && bundle.getDraw().size() > minEdgeCount){
                     insert = n;
                     n++;
                     System.out.println("Adding bundle");
@@ -112,7 +113,7 @@ public class BundleCache implements Iterable<Bundle> {
                 minIndex = i;
             }
         }
-        if(minDiff > threshold) {
+        if(minDiff > overlapThreshold && bundle.getDraw().size() > minEdgeCount) {
             bundles[minIndex] = bundle;
             System.out.println("Replacing old bundle");
             return;
@@ -137,6 +138,7 @@ public class BundleCache implements Iterable<Bundle> {
     }
 
     private int n;
-    private final double threshold;
+    private final double overlapThreshold;
+    private final int minEdgeCount;
     private final Bundle[] bundles;
 }

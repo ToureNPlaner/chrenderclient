@@ -69,7 +69,7 @@ public final class ZoomPanel extends JPanel {
         this.tp = tpClient;
         this.coreSize = coreSize;
         this.points = new ArrayList<Point>();
-        this.bundles = new BundleCache(7, 0.9);
+        this.bundles = new BundleCache(7, 0.9, 100);
         this.paths = new ArrayList<>();
         this.router = null;
 
@@ -574,16 +574,24 @@ public final class ZoomPanel extends JPanel {
             InputStream in = new BufferedInputStream(new FileInputStream(listFile));
             ObjectMapper mapper = new ObjectMapper();
             java.util.List<Framing> framingList = mapper.readValue(in, new TypeReference<java.util.List<Framing>>(){});
+            boolean autoSave = AUTO;
+            int coreSizeSave = this.coreSize;
+            BoundingBox bboxSave = this.bbox;
+            AUTO = false;
             loadCore();
             for (Framing frame: framingList){
                 this.bbox = frame.bbox;
-                this.lastLevel = (AUTO)?Integer.MAX_VALUE:frame.level;
+                this.lastLevel = frame.level;
                 this.coreSize = frame.coreSize;
                 extractGraph(bbox);
                 DrawInfo info = saveImage(frame.name+".png");
                 info.name = frame.name;
                 saveImageInfo(frame.name+"_info.json", info);
             }
+            this.AUTO = autoSave;
+            this.coreSize = coreSizeSave;
+            this.bbox = bboxSave;
+            loadCore();
         } catch (IOException ex) {
             Logger.getLogger(ZoomForm.class.getName()).log(Level.SEVERE, null, ex);
         }
