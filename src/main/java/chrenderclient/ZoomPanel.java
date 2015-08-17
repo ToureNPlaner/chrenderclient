@@ -193,21 +193,21 @@ public final class ZoomPanel extends JPanel {
         if(type <= 3) {
             return Color.black;
         } else if (type <= 5){
-            return Color.lightGray;
+            return Color.darkGray;
         } else if (type <= 6){
-            return Color.yellow;
+            return Color.gray;
         } else if (type <= 8){
-            return Color.blue;
+            return Color.yellow;
         } else if (type <= 10){
-            return Color.cyan;
+            return Color.blue;
         } else if (type <= 15){
-            return Color.red;
+            return Color.white;
         } else {
             return Color.black;
         }
     }
 
-    private final int drawBundle(Graphics2D g2D, Bundle bundle, Transformer trans, BasicStroke stroke, float hue) {
+    private final int drawBundle(Graphics2D g2D, Bundle bundle, Transformer trans, BasicStroke stroke) {
         int linesDrawn = 0;
         DrawData draw = bundle.getDraw();
         BoundingBox bbox = bundle.bbox;
@@ -233,7 +233,7 @@ public final class ZoomPanel extends JPanel {
         return linesDrawn;
     }
 
-    private final int draw(Graphics2D g2D, DrawData draw, Transformer trans, BasicStroke stroke, float hue) {
+    private final int drawCore(Graphics2D g2D, DrawData draw, Transformer trans, BasicStroke stroke) {
         int linesDrawn = 0;
         for (int drawElement = 0; drawElement < draw.size(); drawElement++) {
             int x1 = trans.toDrawX(draw.getX1(drawElement));
@@ -242,6 +242,23 @@ public final class ZoomPanel extends JPanel {
             int y2 = trans.toDrawY(draw.getY2(drawElement));
             if (drawArea.contains(x1, y1) || drawArea.contains(x2, y2)) {
                 g2D.setColor(typeToColor(draw.getType(drawElement)));
+                g2D.setStroke(stroke);
+                g2D.drawLine(x1, y1, x2, y2);
+                linesDrawn++;
+            }
+        }
+        return linesDrawn;
+    }
+
+    private final int drawPath(Graphics2D g2D, DrawData draw, Transformer trans, BasicStroke stroke) {
+        int linesDrawn = 0;
+        for (int drawElement = 0; drawElement < draw.size(); drawElement++) {
+            int x1 = trans.toDrawX(draw.getX1(drawElement));
+            int y1 = trans.toDrawY(draw.getY1(drawElement));
+            int x2 = trans.toDrawX(draw.getX2(drawElement));
+            int y2 = trans.toDrawY(draw.getY2(drawElement));
+            if (drawArea.contains(x1, y1) || drawArea.contains(x2, y2)) {
+                g2D.setColor(Color.red);
                 g2D.setStroke(stroke);
                 g2D.drawLine(x1, y1, x2, y2);
                 linesDrawn++;
@@ -270,7 +287,7 @@ public final class ZoomPanel extends JPanel {
         drawInfo.extendedBBox = computeExtendedBBox(bbox);
         drawInfo.coreBBox = core.getDraw().getBbox();
         drawInfo.coreLines = core.getDraw().size();
-        drawInfo.coreLinesDrawn = draw(g2D, core.getDraw(), trans, largeStreetStroke, 0.7f);
+        drawInfo.coreLinesDrawn = drawCore(g2D, core.getDraw(), trans, largeStreetStroke);
 
 
         System.out.println(Utils.took("Drawing Core", start));
@@ -294,7 +311,7 @@ public final class ZoomPanel extends JPanel {
                 bundleDraw.upEdges = bundle.upEdges.length;
                 bundleDraw.downEdges = bundle.downEdges.length;
                 bundleDraw.lines = bundle.getDraw().size();
-                bundleDraw.linesDrawn = drawBundle(g2D, bundle, trans, mediumStreetStroke, 0.6f);
+                bundleDraw.linesDrawn = drawBundle(g2D, bundle, trans, mediumStreetStroke);
                 System.out.println(Utils.took("Drawing Bundle", start));
                 drawInfo.bundles.add(bundleDraw);
                 //bundleBaseColor = bundleBaseColor.darker();
@@ -311,7 +328,7 @@ public final class ZoomPanel extends JPanel {
         if (paths != null) {
             for(DrawData path : paths) {
                 start = System.nanoTime();
-                draw(g2D, path, trans, pathStroke, 0.3F);
+                drawPath(g2D, path, trans, pathStroke);
                 System.out.println(Utils.took("Drawing Path", start));
             }
         }
@@ -444,7 +461,7 @@ public final class ZoomPanel extends JPanel {
             if(bbox.width < 10 || bbox.height < 10) {
                 setView();
             }
-            core = tp.coreRequest(coreSize, 50, 1000, 0.01);
+            core = tp.coreRequest(coreSize, 30, 800, 0.01);
             this.router = new Router(core, bundles);
             extractGraph(bbox);
             repaint();
