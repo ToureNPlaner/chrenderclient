@@ -128,7 +128,10 @@ public class DrawData {
                     throw new JsonParseException("path is no array", jp.getCurrentLocation());
                 }
                 while (jp.nextToken() != JsonToken.END_ARRAY) {
-                    res.addEdge(jp.getIntValue(), jp.nextIntValue(0), jp.nextIntValue(0));
+                    int srcId = jp.getIntValue();
+                    int trgtId = jp.nextIntValue(0);
+                    int type = jp.nextIntValue(0);
+                    res.addEdge(srcId, trgtId, type);
                 }
             }
         }

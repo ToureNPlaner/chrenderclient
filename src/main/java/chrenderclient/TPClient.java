@@ -35,7 +35,7 @@ public class TPClient {
         CoreGraph res = null;
         HttpPost httpPost = new HttpPost(this.uri + "/algdrawcore");
         httpPost.addHeader("Accept", "application/x-jackson-smile");
-        String bS = "{\"nodeCount\":" +nodeCount+",\"minLen\":"+minLen+",\"maxLen\":"+maxLen+",\"maxRatio\":"+maxRatio+"1}";
+        String bS = "{\"nodeCount\":" +nodeCount+",\"minLen\":"+minLen+",\"maxLen\":"+maxLen+",\"maxRatio\":"+maxRatio+"}";
         System.err.println(bS);
         byte[] b = bS.getBytes("UTF-8");
         HttpEntity body = new ByteArrayEntity(b, ContentType.APPLICATION_JSON);

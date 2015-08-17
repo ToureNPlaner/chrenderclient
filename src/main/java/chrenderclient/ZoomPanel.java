@@ -189,6 +189,24 @@ public final class ZoomPanel extends JPanel {
         }
     }
 
+    private final Color typeToColor(int type){
+        if(type <= 3) {
+            return Color.black;
+        } else if (type <= 5){
+            return Color.lightGray;
+        } else if (type <= 6){
+            return Color.yellow;
+        } else if (type <= 8){
+            return Color.blue;
+        } else if (type <= 10){
+            return Color.cyan;
+        } else if (type <= 15){
+            return Color.red;
+        } else {
+            return Color.black;
+        }
+    }
+
     private final int drawBundle(Graphics2D g2D, Bundle bundle, Transformer trans, BasicStroke stroke, float hue) {
         int linesDrawn = 0;
         DrawData draw = bundle.getDraw();
@@ -205,7 +223,7 @@ public final class ZoomPanel extends JPanel {
                 int dx2 = trans.toDrawX(x2);
                 int dy2 = trans.toDrawY(y2);
                 if (drawArea.contains(dx1, dy1) || drawArea.contains(dx2, dy2)) {
-                    g2D.setColor(Color.getHSBColor(hue, draw.getType(drawElement) / 100.0f, 1.0f));
+                    g2D.setColor(typeToColor(draw.getType(drawElement)));
                     g2D.setStroke(stroke);
                     g2D.drawLine(dx1, dy1, dx2, dy2);
                     linesDrawn++;
@@ -223,7 +241,7 @@ public final class ZoomPanel extends JPanel {
             int x2 = trans.toDrawX(draw.getX2(drawElement));
             int y2 = trans.toDrawY(draw.getY2(drawElement));
             if (drawArea.contains(x1, y1) || drawArea.contains(x2, y2)) {
-                g2D.setColor(Color.getHSBColor(hue, draw.getType(drawElement)/100.0f, 1.0f));
+                g2D.setColor(typeToColor(draw.getType(drawElement)));
                 g2D.setStroke(stroke);
                 g2D.drawLine(x1, y1, x2, y2);
                 linesDrawn++;
@@ -258,7 +276,7 @@ public final class ZoomPanel extends JPanel {
         System.out.println(Utils.took("Drawing Core", start));
 
         if (bundles.isEmpty()) {
-            System.err.println("Priores is null");
+            System.err.println("Priores is empty");
             return drawInfo;
         }
 
