@@ -69,7 +69,7 @@ public final class ZoomPanel extends JPanel {
         this.tp = tpClient;
         this.coreSize = coreSize;
         this.points = new ArrayList<Point>();
-        this.bundles = new BundleCache(7, 0.9, 100);
+        this.bundles = new BundleCache(1, 0.9, 100);
         this.paths = new ArrayList<>();
         this.router = null;
 
@@ -168,7 +168,7 @@ public final class ZoomPanel extends JPanel {
 
     private void drawBundleRect(Graphics2D g, Transformer trans, Bundle bundle) {
         g.setColor(Color.YELLOW);
-        BoundingBox bbox = bundle.bbox;
+        BoundingBox bbox = bundle.requestParams.bbox;
         g.drawRect(trans.toDrawX(bbox.x), trans.toDrawY(bbox.y), trans.toDrawDist(bbox.width), trans.toDrawDist(bbox.height));
     }
 
@@ -177,7 +177,7 @@ public final class ZoomPanel extends JPanel {
         for (int i = 0; i < bundle.nodes.length; ++i) {
             Node n = bundle.nodes[i];
             if(n.hasCoordinates()) {
-                BoundingBox bbox = bundle.bbox;
+                BoundingBox bbox = bundle.requestParams.bbox;
                 if(!bbox.contains(n.getX(), n.getY())){
                     g.setColor(Color.CYAN);
                 } else {
@@ -210,7 +210,7 @@ public final class ZoomPanel extends JPanel {
     private final int drawBundle(Graphics2D g2D, Bundle bundle, Transformer trans, BasicStroke stroke) {
         int linesDrawn = 0;
         DrawData draw = bundle.getDraw();
-        BoundingBox bbox = bundle.bbox;
+        BoundingBox bbox = bundle.requestParams.bbox;
         for (int drawElement = 0; drawElement < draw.size(); drawElement++) {
             int x1 = draw.getX1(drawElement);
             int y1 = draw.getY1(drawElement);
@@ -299,15 +299,15 @@ public final class ZoomPanel extends JPanel {
 
         for (Bundle bundle : bundles) {
             // Draw only visible bundles, that are finer than what we currently want
-            if (!bundle.bbox.intersect(bbox).isEmpty()
-                    && bundle.minLen <= trans.toRealDist(minLen)
-                    && bundle.maxLen <= trans.toRealDist(maxLen)) {
+            if (!bundle.requestParams.bbox.intersect(bbox).isEmpty()
+                    && bundle.requestParams.minLen <= trans.toRealDist(minLen)
+                    && bundle.requestParams.maxLen <= trans.toRealDist(maxLen)) {
                 start = System.nanoTime();
                 BundleDrawInfo bundleDraw = new BundleDrawInfo();
                 bundleDraw.requestSize = Utils.sizeForHumans(bundle.requestSize);
                 bundleDraw.level = bundle.level;
                 bundleDraw.nodes = bundle.nodes.length;
-                bundleDraw.bundleBBox = bundle.bbox;
+                bundleDraw.bundleBBox = bundle.requestParams.bbox;
                 bundleDraw.upEdges = bundle.upEdges.length;
                 bundleDraw.downEdges = bundle.downEdges.length;
                 bundleDraw.lines = bundle.getDraw().size();
@@ -436,7 +436,7 @@ public final class ZoomPanel extends JPanel {
             System.err.println("Requesting " + extendedBBox);
             // TODO proper multi bundle management
             final Transformer t = new Transformer(this.bbox, drawArea);
-            Bundle freshBundle = tp.bbBundleRequest(extendedBBox, coreSize, lastLevel, t.toRealDist(minLen), t.toRealDist(maxLen), 0.01, AUTO);
+            Bundle freshBundle = tp.bbBundleRequest(extendedBBox, coreSize, lastLevel, t.toRealDist(minLen), t.toRealDist(maxLen), 0.01, Bundle.LevelMode.AUTO);
             this.lastLevel = freshBundle.level;
             bundles.offer(freshBundle);
 

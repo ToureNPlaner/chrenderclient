@@ -15,6 +15,22 @@ import java.io.InputStream;
  * all nodes and edges above some specified rank/level
  */
 public final class CoreGraph {
+    public static final class RequestParams {
+        public RequestParams(int nodeCount, int minLen, int maxLen, double maxRatio) {
+            this.nodeCount = nodeCount;
+            this.minLen = minLen;
+            this.maxLen = maxLen;
+            this.maxRatio = maxRatio;
+        }
+
+        public final int nodeCount;
+        public final int minLen;
+        public final int maxLen;
+        public final double maxRatio;
+    }
+
+    public final RequestParams requestParams;
+
     private int nodeCount;
     private int edgeCount;
 
@@ -32,7 +48,8 @@ public final class CoreGraph {
     // Debugging
     public long requestSize;
 
-    private CoreGraph(int nodeCount, int edgeCount, DrawData draw) {
+    private CoreGraph(RequestParams requestParams, int nodeCount, int edgeCount, DrawData draw) {
+        this.requestParams = requestParams;
         this.nodeCount = nodeCount;
         this.edgeCount = edgeCount;
 
@@ -113,7 +130,7 @@ public final class CoreGraph {
         return draw;
     }
 
-    public static CoreGraph readJson(ObjectMapper mapper, InputStream in) throws IOException{
+    public static CoreGraph readJson(ObjectMapper mapper, InputStream in, RequestParams requestParams) throws IOException{
         final JsonParser jp = mapper.getFactory().createParser(in);
         jp.setCodec(mapper);
 
@@ -144,9 +161,9 @@ public final class CoreGraph {
                     draw = DrawData.readJson(jp, token);
                 } else if ("edges".equals(fieldname)) {
                     if (edgeCount < 0 || nodeCount < 0 || draw == null) {
-                        throw new JsonParseException("nodeCount, edgeCount and draw need to come before the edges themselves", jp.getCurrentLocation());
+                        throw new JsonParseException("nodeCountHint, edgeCount and draw need to come before the edges themselves", jp.getCurrentLocation());
                     }
-                    result = new CoreGraph(nodeCount, edgeCount, draw);
+                    result = new CoreGraph(requestParams, nodeCount, edgeCount, draw);
                     // Should be on START_ARRAY
                     if (token != JsonToken.START_ARRAY) {
                         throw new JsonParseException("edges is no array", jp.getCurrentLocation());

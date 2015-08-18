@@ -14,33 +14,55 @@ import java.io.InputStream;
  * some minimum level
  */
 public class Bundle {
+    public enum LevelMode {
+        AUTO, HINTED, EXACT
+    }
 
+    public static final class RequestParams {
+        public RequestParams(BoundingBox bbox, int nodeCountHint, int coreSize, int minPrio, int minLen, int maxLen, double maxRatio, LevelMode mode) {
+            this.bbox = bbox;
+            this.nodeCountHint = nodeCountHint;
+            this.coreSize = coreSize;
+            this.minPrio = minPrio;
+            this.minLen = minLen;
+            this.maxLen = maxLen;
+            this.maxRatio = maxRatio;
+            this.mode = mode;
+        }
+        public final BoundingBox bbox;
+        public final int coreSize;
+        public final int minPrio;
+        public final int nodeCountHint;
+        public final int minLen;
+        public final int maxLen;
+        public final double maxRatio;
+        public final LevelMode mode;
+    }
+
+    public final RequestParams requestParams;
     public final Edge[] upEdges;
     public final Edge[] downEdges;
     public final Node[] nodes;
-    public final int coreSize;
-    public final BoundingBox bbox;
     public final int level;
-    public final double minLen;
-    public final double maxLen;
-    public final double maxRatio;
+    private final int coreSize;
     private DrawData draw;
 
     // Debug data
     public long requestSize;
 
 
-    private Bundle(int nodeCount, int upEdgeCount, int downEdgeCount, int coreSize, BoundingBox bbox,int level, double minLen, double maxLen, double maxRatio) {
+    private Bundle(RequestParams requestParams, int level, int nodeCount, int upEdgeCount, int downEdgeCount) {
+        this.requestParams = requestParams;
         nodes = new Node[nodeCount];
         upEdges = new Edge[upEdgeCount];
         downEdges = new Edge[downEdgeCount];
-        this.coreSize = coreSize;
-        this.bbox = bbox;
         this.level = level;
-        this.minLen = minLen;
-        this.maxLen = maxLen;
-        this.maxRatio = maxRatio;
+        this.coreSize = requestParams.coreSize;
         this.draw = null;
+    }
+
+    public int getCoreSize(){
+        return coreSize;
     }
 
     public DrawData getDraw() {
@@ -74,17 +96,12 @@ public class Bundle {
         return new BoundingBox(x, y, width, height);
     }
 
-    private static Bundle readPrioResultHead(JsonParser jp, JsonToken token) throws IOException {
+    private static Bundle readPrioResultHead(JsonParser jp, JsonToken token, Bundle.RequestParams requestParams) throws IOException {
         String fieldName;
         int nodeCount = -1;
         int upEdgeCount = -1;
         int downEdgeCount = -1;
-        int coreSize = 0;
         int level = 0;
-        double minLen = 20;
-        double maxLen = 400;
-        double maxRatio = 0.01;
-        BoundingBox bbox = null;
 
         if (token != JsonToken.START_OBJECT) {
             throw new JsonParseException("head is no object", jp.getCurrentLocation());
@@ -98,18 +115,8 @@ public class Bundle {
                 upEdgeCount = jp.getIntValue();
             } else if ("downEdgeCount".equals(fieldName)) {
                 downEdgeCount = jp.getIntValue();
-            } else if ("coreSize".equals(fieldName)) {
-                coreSize = jp.getIntValue();
             } else if ("level".equals(fieldName)) {
                 level = jp.getIntValue();
-            } else if ("minLen".equals(fieldName)) {
-                minLen = jp.getDoubleValue();
-            } else if ("maxLen".equals(fieldName)) {
-                maxLen = jp.getDoubleValue();
-            } else if ("maxRatio".equals(fieldName)) {
-                maxRatio = jp.getDoubleValue();
-            } else if ("bbox".equals(fieldName)) {
-                bbox = readBoundingBox(jp, token);
             } else {
                 throw new JsonParseException("Unexpected token " + token, jp.getCurrentLocation());
             }
@@ -119,16 +126,16 @@ public class Bundle {
             throw new JsonParseException("Head not complete", jp.getCurrentLocation());
         }
 
-        return new Bundle(nodeCount, upEdgeCount, downEdgeCount, coreSize, bbox, level, minLen, maxLen, maxRatio);
+        return new Bundle(requestParams, level, nodeCount, upEdgeCount, downEdgeCount);
     }
 
 
-    public static Bundle readJson(ObjectMapper mapper, InputStream in) throws IOException {
+    public static Bundle readJson(ObjectMapper mapper, InputStream in, Bundle.RequestParams requestParams) throws IOException {
 
         /*
         Prio Result looks something like this:
         [
-        {"nodeCount" : NUM, "upEdgeCount": NUM, "downEdgeCount" : NUM},
+        {"nodeCountHint" : NUM, "upEdgeCount": NUM, "downEdgeCount" : NUM},
         {
         "upEdges" : ...,,
         "downEdges" : ....
@@ -156,7 +163,7 @@ public class Bundle {
                 // START_OBJECT/START_ARRAY
 
                 if ("head".equals(fieldName)) {
-                    bundle = readPrioResultHead(jp, token);
+                    bundle = readPrioResultHead(jp, token, requestParams);
                 } else if ("draw".equals(fieldName)) {
                     if (bundle == null) {
                         throw new JsonParseException("Need to see head before draw", jp.getCurrentLocation());
@@ -253,7 +260,7 @@ public class Bundle {
                     // and not in the core
                     if (e.trgt != currTrgt) {
                         currTrgt = e.trgt;
-                        bundle.nodes[currTrgt - bundle.coreSize].setDownIndex(edgeNum);
+                        bundle.nodes[currTrgt - bundle.getCoreSize()].setDownIndex(edgeNum);
                     }
                     bundle.downEdges[edgeNum] = e;
                     edgeNum++;
@@ -266,7 +273,7 @@ public class Bundle {
     }
 
     private static void setSourceCoords(Bundle bundle, int edgeNum, int currSrc, Edge e) {
-        int index = currSrc - bundle.coreSize;
+        int index = currSrc - bundle.getCoreSize();
         assert bundle.nodes[index] != null;
         if(e.path.size() > 0) {
             int firstDrawIndex = e.path.get(0);

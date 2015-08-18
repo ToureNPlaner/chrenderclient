@@ -55,8 +55,8 @@ public class BundleCache implements Iterable<Bundle> {
      */
     private double rateDifference(Bundle fresh, Bundle old){
         // We get more use of a bundle the less area it shares with the new one
-        BoundingBox freshBBox = fresh.bbox;
-        BoundingBox oldBBox = old.bbox;
+        BoundingBox freshBBox = fresh.requestParams.bbox;
+        BoundingBox oldBBox = old.requestParams.bbox;
         BoundingBox intersection = oldBBox.intersect(freshBBox);
         if(intersection.isEmpty()){
             return 1.0;
@@ -72,7 +72,7 @@ public class BundleCache implements Iterable<Bundle> {
 
     public void offer(Bundle bundle){
         // Don't care about empty bundles
-        if(bundle.bbox.isEmpty()){
+        if(bundle.requestParams.bbox.isEmpty()){
             return;
         }
 

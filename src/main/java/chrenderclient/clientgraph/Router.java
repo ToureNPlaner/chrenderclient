@@ -243,7 +243,7 @@ public class Router {
                 Edge edge = srcBundle.upEdges[upEdgeIndex];
                 // if order mattered added at start
                 path.addFromIndexed(srcBundle.getDraw(), edge.path);
-                currNode = edge.src - srcBundle.coreSize;
+                currNode = edge.src - srcBundle.getCoreSize();
             }
 
             // down graph
@@ -253,7 +253,7 @@ public class Router {
                 Edge currEdge = trgtBundle.downEdges[downEdgeIndex];
                 // if order mattered added  at end
                 path.addFromIndexed(trgtBundle.getDraw(), currEdge.path);
-                currNode = currEdge.trgt - trgtBundle.coreSize;
+                currNode = currEdge.trgt - trgtBundle.getCoreSize();
             }
         }
         this.bestDist = mergeBestDist;
@@ -271,7 +271,7 @@ public class Router {
         if (trgtBundle != null) {
             int downEdgeIndex = coreLeavePreds[bestId];
             Edge currEdge = trgtBundle.downEdges[downEdgeIndex];
-            currNode = currEdge.trgt - trgtBundle.coreSize;
+            currNode = currEdge.trgt - trgtBundle.getCoreSize();
             // if order mattered added at end
             path.addFromIndexed(trgtBundle.getDraw(), currEdge.path);
             while (currNode != trgtId) {
@@ -279,7 +279,7 @@ public class Router {
                 currEdge = trgtBundle.downEdges[downEdgeIndex];
                 // if order mattered added at end
                 path.addFromIndexed(trgtBundle.getDraw(), currEdge.path);
-                currNode = currEdge.trgt - trgtBundle.coreSize;
+                currNode = currEdge.trgt - trgtBundle.getCoreSize();
             }
         }
 
@@ -299,13 +299,13 @@ public class Router {
             Edge edge = srcBundle.upEdges[upEdgeIndex];
             // if order mattered added at start
             path.addFromIndexed(srcBundle.getDraw(), edge.path);
-            currNode = edge.src - srcBundle.coreSize;
+            currNode = edge.src - srcBundle.getCoreSize();
             while (currNode != srcId) {
                 upEdgeIndex = upPreds[currNode];
                 edge = srcBundle.upEdges[upEdgeIndex];
                 // if order mattered added at start
                 path.addFromIndexed(srcBundle.getDraw(), edge.path);
-                currNode = edge.src - srcBundle.coreSize;
+                currNode = edge.src - srcBundle.getCoreSize();
             }
         }
         bestPath = path;
@@ -374,18 +374,18 @@ public class Router {
 
         Arrays.fill(upDists, Integer.MAX_VALUE);
         int srcUpIndex = srcBundle.nodes[srcId].getUpIndex();
-        assert srcId == srcBundle.upEdges[srcUpIndex].src - srcBundle.coreSize;
+        assert srcId == srcBundle.upEdges[srcUpIndex].src - srcBundle.getCoreSize();
         upDists[srcId] = 0;
         for (int upEdgeIndex = 0; upEdgeIndex < srcBundle.upEdges.length; ++upEdgeIndex) {
             Edge e = srcBundle.upEdges[upEdgeIndex];
-            int tmpDist = upDists[e.src - srcBundle.coreSize];
+            int tmpDist = upDists[e.src - srcBundle.getCoreSize()];
             if (tmpDist < Integer.MAX_VALUE) {
 
                 tmpDist += e.cost;
                 assert tmpDist >= 0;
-                if (e.trgt >= srcBundle.coreSize) {
-                    int trgtUp = e.trgt - srcBundle.coreSize;
-                    assert (e.src - srcBundle.coreSize) < trgtUp; // topo sort property
+                if (e.trgt >= srcBundle.getCoreSize()) {
+                    int trgtUp = e.trgt - srcBundle.getCoreSize();
+                    assert (e.src - srcBundle.getCoreSize()) < trgtUp; // topo sort property
                     if (tmpDist < upDists[trgtUp]) {
                         upDists[trgtUp] = tmpDist;
                         upPreds[trgtUp] = upEdgeIndex;
@@ -412,21 +412,21 @@ public class Router {
 
         Arrays.fill(downDists, Integer.MAX_VALUE);
         int trgtDownIndex = trgtBundle.nodes[trgtId].getDownIndex();
-        assert trgtId == trgtBundle.downEdges[trgtDownIndex].trgt - trgtBundle.coreSize;
+        assert trgtId == trgtBundle.downEdges[trgtDownIndex].trgt - trgtBundle.getCoreSize();
         downDists[trgtId] = 0;
 
 
         for (int downEdgeIndex = 0; downEdgeIndex < trgtBundle.downEdges.length; ++downEdgeIndex) {
             Edge e = trgtBundle.downEdges[downEdgeIndex];
 
-            int tmpDist = downDists[e.trgt - trgtBundle.coreSize];
+            int tmpDist = downDists[e.trgt - trgtBundle.getCoreSize()];
             if (tmpDist < Integer.MAX_VALUE) {
 
                 tmpDist += e.cost;
                 assert tmpDist >= 0;
-                if (e.src >= trgtBundle.coreSize) {
-                    int srcDown = e.src - trgtBundle.coreSize;
-                    assert (e.trgt - trgtBundle.coreSize) < srcDown; // topo sort property
+                if (e.src >= trgtBundle.getCoreSize()) {
+                    int srcDown = e.src - trgtBundle.getCoreSize();
+                    assert (e.trgt - trgtBundle.getCoreSize()) < srcDown; // topo sort property
                     if (tmpDist < downDists[srcDown]) {
                         downDists[srcDown] = tmpDist;
                         downPreds[srcDown] = downEdgeIndex;
