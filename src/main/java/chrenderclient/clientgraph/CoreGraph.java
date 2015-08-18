@@ -161,7 +161,7 @@ public final class CoreGraph {
                     draw = DrawData.readJson(jp, token);
                 } else if ("edges".equals(fieldname)) {
                     if (edgeCount < 0 || nodeCount < 0 || draw == null) {
-                        throw new JsonParseException("nodeCountHint, edgeCount and draw need to come before the edges themselves", jp.getCurrentLocation());
+                        throw new JsonParseException("nodeCount, edgeCount and draw need to come before the edges themselves", jp.getCurrentLocation());
                     }
                     result = new CoreGraph(requestParams, nodeCount, edgeCount, draw);
                     // Should be on START_ARRAY

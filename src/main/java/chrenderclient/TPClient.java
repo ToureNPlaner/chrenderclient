@@ -40,7 +40,7 @@ public class TPClient {
         HttpPost httpPost = new HttpPost(this.uri + "/algdrawcore");
         httpPost.addHeader("Accept", "application/x-jackson-smile");
 
-        String bS = "{\"nodeCountHint\":" +requestParams.nodeCount +
+        String bS = "{\"nodeCount\":" +requestParams.nodeCount +
                     ",\"minLen\":" + requestParams.minLen +
                     ",\"maxLen\":" + requestParams.maxLen +
                     ",\"maxRatio\":" + requestParams.maxRatio + "}";
