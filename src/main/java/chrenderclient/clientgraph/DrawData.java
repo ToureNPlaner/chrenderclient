@@ -122,7 +122,7 @@ public class DrawData {
                     res.addVertex(x, y);
                 }
 
-            } else if ("edges".equals(fieldName)) {
+            } else if ("lines".equals(fieldName)) {
                 // Should be on START_ARRAY
                 if (token != JsonToken.START_ARRAY) {
                     throw new JsonParseException("path is no array", jp.getCurrentLocation());
