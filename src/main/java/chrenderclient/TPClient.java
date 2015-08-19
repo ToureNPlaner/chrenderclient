@@ -84,7 +84,7 @@ public class TPClient {
 
                 "\"nodeCountHint\":" + requestParams.nodeCountHint +
                 ",\"mode\":\"" + mode +
-                "\",\"level\":" + requestParams.minPrio +
+                "\",\"minPrio\":" + requestParams.minPrio +
                 ",\"minLen\":" + requestParams.minLen +
                 ",\"maxLen\":" + requestParams.maxLen +
                 ",\"maxRatio\":" + requestParams.maxRatio +
