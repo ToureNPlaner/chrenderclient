@@ -4,9 +4,13 @@ package chrenderclient.clientgraph;
  * Created by niklas on 06.05.15.
  */
 public class Utils {
-    public static String took(String what, long start) {
+    public static final String took(String what, long start) {
         long now = System.nanoTime();
-        return "TIMING: "+what+" took "+(double) (now - start) / 1000000.0 + " ms ";
+        return "TIMING: "+what+" took "+ nsToMs(now - start) + " ms ";
+    }
+
+    public static final double nsToMs(long timespan){
+        return ((double)timespan)/1000000.0;
     }
 
     public static String sizeForHumans(long size) {

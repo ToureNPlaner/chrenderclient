@@ -3,7 +3,6 @@ package chrenderclient;
 import chrenderclient.clientgraph.BoundingBox;
 import chrenderclient.clientgraph.Bundle;
 import chrenderclient.clientgraph.CoreGraph;
-import chrenderclient.clientgraph.Utils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.smile.SmileFactory;
 import org.apache.http.HttpEntity;
@@ -36,7 +35,7 @@ public class TPClient {
 
     public CoreGraph coreRequest(int nodeCount, int minLen, int maxLen, double maxRatio) throws IOException {
         final CoreGraph.RequestParams requestParams = new CoreGraph.RequestParams(nodeCount, minLen, maxLen, maxRatio);
-        CoreGraph res = null;
+
         HttpPost httpPost = new HttpPost(this.uri + "/algdrawcore");
         httpPost.addHeader("Accept", "application/x-jackson-smile");
 
@@ -56,15 +55,25 @@ public class TPClient {
         // Please note that if response content is not fully consumed the underlying
         // connection cannot be safely re-used and will be shut down and discarded
         // by the connection manager.
+        CoreGraph res = null;
         try {
             System.out.println(response.getStatusLine());
             HttpEntity resEntity = response.getEntity();
             long size = resEntity.getContentLength();
-            System.out.println("Core has requestSize:" + Utils.sizeForHumans(size));
+            long start = System.nanoTime();
             res = CoreGraph.readJson(mapper, resEntity.getContent(), requestParams);
+            long end = System.nanoTime();
             res.requestSize = size;
             // do something useful with the response body
             // and ensure it is fully consumed
+            double mibs = ((double) res.requestSize)/((double) (2<<20));
+            System.out.println("COREDATA[Request Size (MiB),Time to Read (ms), Nodes, Edges, Draw Vertices, Draw Lines]:"
+                    +mibs+
+                    ", "+Double.toString((end-start)/1000000.0)+
+                    ", " +res.getNodeCount()+
+                    ", "+res.getEdgeCount()+
+                    ", "+res.getDraw().numVertices()+
+                    ", "+res.getDraw().size());
             EntityUtils.consume(resEntity);
         } finally {
             response.close();
@@ -74,7 +83,7 @@ public class TPClient {
 
     public Bundle bbBundleRequest(BoundingBox bbox, int coreSize, int minPrio, int minLen, int maxLen, double maxRatio, Bundle.LevelMode levelMode) throws IOException {
         Bundle.RequestParams requestParams = new Bundle.RequestParams(bbox, 800, coreSize, minPrio, minLen, maxLen, maxRatio, levelMode);
-        Bundle res = null;
+
         String mode = levelMode.toString().toLowerCase();
         HttpPost httpPost = new HttpPost(this.uri + "/algbbbundle");
         httpPost.addHeader("Accept", "application/x-jackson-smile");
@@ -101,6 +110,7 @@ public class TPClient {
         // Please note that if response content is not fully consumed the underlying
         // connection cannot be safely re-used and will be shut down and discarded
         // by the connection manager.
+        Bundle res = null;
         try {
             System.out.println(response.getStatusLine());
             HttpEntity resEntity = response.getEntity();
@@ -108,8 +118,19 @@ public class TPClient {
             long start = System.nanoTime();
             res = Bundle.readJson(mapper, new BufferedInputStream(resEntity.getContent()), requestParams);
             res.requestSize = size;
-            System.out.println(Utils.took("Reading Bundles", start));
-            System.out.println("Bundle has requestSize:" + Utils.sizeForHumans(size));
+            long end = System.nanoTime();
+            double mibs = ((double) res.requestSize)/((double) (2<<20));
+            System.out.println("BUNDLEDATA[Request Size (MiB),Time to Read (ms), Core Size, Level, Nodes, Edges, Upwards Edges, Downwards Edges, Draw Vertices, Draw Lines]:"
+                    +mibs+
+                    ", "+Double.toString((end-start)/1000000.0)+
+                    ", "+res.getCoreSize()+
+                    ", "+res.level+
+                    ", " +res.nodes.length+
+                    ", "+(res.upEdges.length+res.downEdges.length)+
+                    ", "+res.upEdges.length+
+                    ", "+res.downEdges.length+
+                    ", "+res.getDraw().numVertices()+
+                    ", "+res.getDraw().size());
             // do something useful with the response body
             // and ensure it is fully consumed
             EntityUtils.consume(resEntity);

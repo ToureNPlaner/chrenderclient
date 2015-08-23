@@ -63,13 +63,12 @@ public class Router {
      */
     public DrawData route(int srcX, int srcY, int trgtX, int trgtY) {
         System.out.println("From (" + srcX + ", " + srcY + ") to (" + trgtX + ", " + trgtY + ")");
-        long start = System.nanoTime();
+        final long start = System.nanoTime();
         // TODO src/trgt node in core
         this.bestDist = Integer.MAX_VALUE;
         this.bestPath = null;
         findSourceAndTarget(srcX, srcY, trgtX, trgtY);
-        System.out.println(Utils.took("finding ids", start));
-        System.out.println("srcId: " + srcId + ((srcBundle != null) ? " (bundle)" : "(core)") + " trgtId: " + trgtId + ((trgtBundle != null) ? " (bundle)" : "(core) ")+" crossBundle? "+(srcBundle != trgtBundle));
+        final long afterFindId = System.nanoTime();
         // Scan upGraph
         int[] upDists = null;
         int[] upPreds = null;
@@ -79,13 +78,12 @@ public class Router {
         if (srcBundle != null) {
             upDists = new int[srcBundle.nodes.length];
             upPreds = scanUpGraph(srcBundle, srcId, upDists, coreFwdDists, coreEnterPreds, coreFwdSettled);
-            System.out.println(Utils.took("scanUpGraph", start));
         } else {
             coreFwdSettled.add(srcId);
             coreFwdDists[srcId] = 0;
             coreEnterPreds[srcId] = 0;
         }
-        start = System.nanoTime();
+        final long afterScanUpGraph = System.nanoTime();
 
         // Scan downGraph backwards
         int[] downDists = null;
@@ -95,39 +93,41 @@ public class Router {
         if (trgtBundle != null) {
             downDists = new int[trgtBundle.nodes.length];
             downPreds = scanDownGraph(trgtBundle, trgtId, downDists, coreBwdDists, coreLeavePreds, coreBwdSettled);
-            System.out.println(Utils.took("scanDownGraph", start));
         } else {
             coreBwdSettled.add(trgtId);
             coreBwdDists[trgtId] = 0;
         }
-        start = System.nanoTime();
+        final long afterScanDownGraph = System.nanoTime();
         boolean done = false;
         if (srcBundle != null && trgtBundle != null) {
             tryMergeBelowCore(srcBundle, trgtBundle, srcId, trgtId, upPreds, downPreds, upDists, downDists);
-            System.out.println(Utils.took("Merge below core", start));
-            start = System.nanoTime();
             done = bestDist < Integer.MAX_VALUE && checkBestPath(coreFwdSettled, coreBwdSettled);
-            System.out.println(Utils.took("checkBestPath", start));
         }
+        final long afterMerge = System.nanoTime();
 
-        if(!done) {
+        if (!done) {
             // Dijkstra on core
-
-            System.out.println("Going into CoreDijkstra with " + coreFwdSettled.size() + " settled nodes");
-            start = System.nanoTime();
             Arrays.fill(corePreds, -1);
             int bestId = coreDijkstra(coreFwdDists, coreBwdDists, corePreds, coreFwdSettled);
-            System.out.println(Utils.took("coreDijkstra", start));
             if (bestId < 0) {
                 return bestPath;
             }
             // Backtrack
-            start = System.nanoTime();
             backtrackWithCore(srcBundle, trgtBundle, upPreds, downPreds, corePreds, coreEnterPreds, coreLeavePreds, srcId, trgtId, bestId);
-            System.out.println(Utils.took("backtrackWithCore", start));
         }
+        final long end = System.nanoTime();
 
-        System.out.println("BestDist: "+bestDist);
+        System.out.println("ROUTEDATA[Overall (ms), Finding IDs, Scan Upwards Graph (ms), Scan Downwards Graph (ms), Merge Below Core (ms), Core Dijkstra (ms), Cost, Forward Settled Nodes, Backward Settled Nodes]:" +
+                        Utils.nsToMs(end - start) +// Overall
+                        ", " + Utils.nsToMs(afterFindId - start) +//FindIds
+                        ", " + Utils.nsToMs(afterScanUpGraph - afterFindId) +//Scan upgraph
+                        ", " + Utils.nsToMs(afterScanDownGraph - afterScanUpGraph) +//Scan downgraph
+                        ", " + Utils.nsToMs(afterMerge - afterScanDownGraph) +//Merge
+                        ", " + Utils.nsToMs(end - afterMerge) +//Core Graph
+                        ", " + bestDist +
+                        ", " + coreFwdSettled.size() +
+                        ", " + coreBwdSettled.size()
+        );
         return bestPath;
     }
 
@@ -234,7 +234,6 @@ public class Router {
         }
         DrawData path = null;
         if (mergeBestDist < Integer.MAX_VALUE) {
-            System.out.println("Best Dist below core: " + mergeBestDist + " bestUpId: " + bestUpId + " bestDownId: " + bestDownId);
             path = new DrawData();
             // up graph
             int currNode = bestUpId;
@@ -332,14 +331,12 @@ public class Router {
 
             // if the minimum is already higher cost than the best known path we can't find anything better anymore
             if (minElement.dist > bestDist) {
-                System.out.println("Abort core Dijkstra at dist " + minElement.dist + " best dist: " + bestDist + " bestDijkstraDist: " + dijkstraBestDist);
                 break;
             }
 
             // Settled in backwards sweep is a best cost candidate
             if (coreBwdDists[currNode] < Integer.MAX_VALUE) {
                 int dist = coreFwdDists[currNode] + coreBwdDists[currNode];
-                System.out.println("Reached core leave node " + currNode + " dist: " + dist + " coreFwdDist: " + coreFwdDists[currNode] + " coreBwdDist: " + coreBwdDists[currNode]);
                 if (dist < dijkstraBestDist) {
                     bestId = currNode;
                     dijkstraBestDist = dist;
@@ -360,8 +357,7 @@ public class Router {
         }
 
 
-        System.out.println("Cost of dijkstra path is " + dijkstraBestDist);
-        if(dijkstraBestDist < bestDist){
+        if (dijkstraBestDist < bestDist) {
             bestDist = dijkstraBestDist;
             return bestId;
         } else {
@@ -392,7 +388,6 @@ public class Router {
                     }
                 } else {
                     // Edges entering the core are saved
-                    System.out.println("Entering core at " + e.trgt);
                     if (tmpDist < coreDists[e.trgt]) {
                         if (coreDists[e.trgt] == Integer.MAX_VALUE) {
                             coreFwdSettled.add(e.trgt);
@@ -432,7 +427,6 @@ public class Router {
                         downPreds[srcDown] = downEdgeIndex;
                     }
                 } else {
-                    System.out.println("Entering (backward) core at " + e.src);
                     // Edges leaving the core are saved
                     if (tmpDist < coreDists[e.src]) {
                         if (coreDists[e.src] == Integer.MAX_VALUE) {

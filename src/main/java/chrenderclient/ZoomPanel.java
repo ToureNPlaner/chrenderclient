@@ -51,8 +51,10 @@ public final class ZoomPanel extends JPanel {
     private boolean AUTO = true;
     private boolean justDragged = false;
 
-    public boolean showPriorityNodes = false;
-    public boolean showBundleRects = false;
+    private boolean showPriorityNodes = false;
+    private boolean showBundleRects = false;
+    private boolean showBundles = true;
+    private boolean showCore = true;
     private double extendFactor = 3;
     private double changeFactor = 1.8;
 
@@ -125,6 +127,38 @@ public final class ZoomPanel extends JPanel {
         for (Point p : points) {
             paintPoint(p, g);
         }
+    }
+
+    public void setCoreVisibility(boolean visible){
+        this.showCore = visible;
+    }
+
+    public void setBundleVisibility(boolean visible){
+        this.showBundles = visible;
+    }
+
+    public void setPriorityNodesVisibility(boolean visible){
+        this.showPriorityNodes = visible;
+    }
+
+    public void setBundleRectsVisibility(boolean visible){
+        this.showBundleRects = visible;
+    }
+
+    public boolean getCoreVisibility(){
+        return  this.showCore;
+    }
+
+    public boolean getBundleVisibility(){
+        return  this.showBundles;
+    }
+
+    public boolean getPriorityNodesVisibility(){
+        return  this.showPriorityNodes;
+    }
+
+    public boolean getBundleRectsVisibility(){
+        return  this.showBundleRects;
     }
 
     public void toggleAutoLevel(ActionEvent evt) {
@@ -287,7 +321,9 @@ public final class ZoomPanel extends JPanel {
         drawInfo.extendedBBox = computeExtendedBBox(bbox);
         drawInfo.coreBBox = core.getDraw().getBbox();
         drawInfo.coreLines = core.getDraw().size();
-        drawInfo.coreLinesDrawn = drawCore(g2D, core.getDraw(), trans, largeStreetStroke);
+        if(showCore) {
+            drawInfo.coreLinesDrawn = drawCore(g2D, core.getDraw(), trans, largeStreetStroke);
+        }
 
 
         System.out.println(Utils.took("Drawing Core", start));
@@ -297,29 +333,31 @@ public final class ZoomPanel extends JPanel {
             return drawInfo;
         }
 
-        for (Bundle bundle : bundles) {
-            // Draw only visible bundles, that are finer than what we currently want
-            if (!bundle.requestParams.bbox.intersect(bbox).isEmpty()
-                    && bundle.requestParams.minLen <= trans.toRealDist(minLen)
-                    && bundle.requestParams.maxLen <= trans.toRealDist(maxLen)) {
-                start = System.nanoTime();
-                BundleDrawInfo bundleDraw = new BundleDrawInfo();
-                bundleDraw.requestSize = Utils.sizeForHumans(bundle.requestSize);
-                bundleDraw.level = bundle.level;
-                bundleDraw.nodes = bundle.nodes.length;
-                bundleDraw.bundleBBox = bundle.requestParams.bbox;
-                bundleDraw.upEdges = bundle.upEdges.length;
-                bundleDraw.downEdges = bundle.downEdges.length;
-                bundleDraw.lines = bundle.getDraw().size();
-                bundleDraw.linesDrawn = drawBundle(g2D, bundle, trans, mediumStreetStroke);
-                System.out.println(Utils.took("Drawing Bundle", start));
-                drawInfo.bundles.add(bundleDraw);
-                //bundleBaseColor = bundleBaseColor.darker();
-                if (showPriorityNodes) {
-                    drawBundleNodes(g2D, trans, bundle);
-                }
-                if (showBundleRects) {
-                    drawBundleRect(g2D, trans, bundle);
+        if(showBundles) {
+            for (Bundle bundle : bundles) {
+                // Draw only visible bundles, that are finer than what we currently want
+                if (!bundle.requestParams.bbox.intersect(bbox).isEmpty()
+                        && bundle.requestParams.minLen <= trans.toRealDist(minLen)
+                        && bundle.requestParams.maxLen <= trans.toRealDist(maxLen)) {
+                    start = System.nanoTime();
+                    BundleDrawInfo bundleDraw = new BundleDrawInfo();
+                    bundleDraw.requestSize = Utils.sizeForHumans(bundle.requestSize);
+                    bundleDraw.level = bundle.level;
+                    bundleDraw.nodes = bundle.nodes.length;
+                    bundleDraw.bundleBBox = bundle.requestParams.bbox;
+                    bundleDraw.upEdges = bundle.upEdges.length;
+                    bundleDraw.downEdges = bundle.downEdges.length;
+                    bundleDraw.lines = bundle.getDraw().size();
+                    bundleDraw.linesDrawn = drawBundle(g2D, bundle, trans, mediumStreetStroke);
+                    System.out.println(Utils.took("Drawing Bundle", start));
+                    drawInfo.bundles.add(bundleDraw);
+                    //bundleBaseColor = bundleBaseColor.darker();
+                    if (showPriorityNodes) {
+                        drawBundleNodes(g2D, trans, bundle);
+                    }
+                    if (showBundleRects) {
+                        drawBundleRect(g2D, trans, bundle);
+                    }
                 }
             }
         }
@@ -555,7 +593,7 @@ public final class ZoomPanel extends JPanel {
             String name = JOptionPane.showInputDialog("Frame Name:");;
             DrawInfo info = saveImage(name+".png");
             info.name = name;
-            saveImageInfo(name+"_info.json", info);
+            saveImageInfo(name + "_info.json", info);
         } catch (IOException ex) {
             Logger.getLogger(ZoomForm.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -595,6 +633,48 @@ public final class ZoomPanel extends JPanel {
         } catch (IOException ex) {
             Logger.getLogger(ZoomForm.class.getName()).log(Level.SEVERE, null, ex);
         }
+    }
+
+    public void CoreSizeLevelTest(java.awt.event.ActionEvent evt){
+        try {
+            boolean bundlesVisibleSave = this.getBundleVisibility();
+            int coreSizeSave = this.coreSize;
+            this.setBundleVisibility(false);
+            for(int size = 0; size <= 10000; size+=10) {
+                this.coreSize = size;
+                core = tp.coreRequest(coreSize, 30, 800, 0.01);
+                String name = "core_"+size;
+                DrawInfo info = saveImage(name+".png");
+                info.name = name;
+                saveImageInfo(name+"_info.json", info);
+            }
+            this.coreSize = coreSizeSave;
+            this.setBundleVisibility(bundlesVisibleSave);
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+
+    }
+
+    public void BundleCoreSizeTest(java.awt.event.ActionEvent evt){
+        try {
+            boolean coreVisibleSave = this.getCoreVisibility();
+            this.setCoreVisibility(false);
+            int coreSizeSave = this.coreSize;
+            for(int size = 0; size <= 20000; size+=10) {
+                this.coreSize = size;
+                extractGraph(bbox);
+                String name = "bundle_core_size_"+size;
+                DrawInfo info = saveImage(name+".png");
+                info.name = name;
+                saveImageInfo(name+"_info.json", info);
+            }
+            this.coreSize = coreSizeSave;
+            this.setCoreVisibility(coreVisibleSave);
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+
     }
 
     public void prioritySliderStateChanged(javax.swing.event.ChangeEvent evt) {
