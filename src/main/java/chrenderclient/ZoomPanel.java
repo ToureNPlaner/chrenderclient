@@ -19,6 +19,7 @@ import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -632,6 +633,28 @@ public final class ZoomPanel extends JPanel {
             loadCore();
         } catch (IOException ex) {
             Logger.getLogger(ZoomForm.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    public void RoutingTest(ActionEvent evt) {
+        try {
+            int iterations = Integer.parseInt(JOptionPane.showInputDialog("Number of Iterations:"));
+            if(core == null){
+                return;
+            }
+            Random rand = new Random(42);
+            BoundingBox all = core.getDraw().getBbox();
+            for(int i=0; i < iterations; ++i){
+                int srcX = all.x + rand.nextInt(all.width);
+                int srcY = all.y + rand.nextInt(all.height);
+                int trgtX = all.x + rand.nextInt(all.width);
+                int trgtY = all.y + rand.nextInt(all.height);
+                router.route(srcX, srcY, trgtX, trgtY);
+            }
+        } catch (NumberFormatException ex){
+            JOptionPane.showMessageDialog(this.getParent(), "You do realize I was expecting a number?");
+        } catch (Exception e){
+            e.printStackTrace();
         }
     }
 

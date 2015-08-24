@@ -72,6 +72,7 @@ public class ZoomForm extends javax.swing.JFrame {
         TestMenu = new javax.swing.JMenu();
         TestCoreLevelSize = new javax.swing.JMenuItem();
         TestBundleCoreSize = new javax.swing.JMenuItem();
+        TestRouting = new javax.swing.JMenuItem();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
@@ -215,6 +216,15 @@ public class ZoomForm extends javax.swing.JFrame {
                 zoomPanel.BundleCoreSizeTest(evt);
             }
         });
+
+        TestRouting.setText("Routing Test");
+        TestRouting.addActionListener(new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                zoomPanel.RoutingTest(evt);
+            }
+        });
+        TestMenu.add(TestRouting);
         TestMenu.add(TestBundleCoreSize);
         TestMenu.add(TestCoreLevelSize);
 
@@ -299,7 +309,7 @@ public class ZoomForm extends javax.swing.JFrame {
      * @param args the command line arguments
      */
     public static void main(String args[]) {
-        final TPClient tp = new TPClient("http://localhost:8080");
+        final TPClient tp = new TPClient("http://plankton:8080");
 	    /* Set the Nimbus look and feel */
         //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
         /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
@@ -361,6 +371,7 @@ public class ZoomForm extends javax.swing.JFrame {
     private javax.swing.JMenu TestMenu;
     private javax.swing.JMenuItem TestCoreLevelSize;
     private javax.swing.JMenuItem TestBundleCoreSize;
+    private javax.swing.JMenuItem TestRouting;
     private javax.swing.JMenuItem UndoLastMarkerMenuItem;
     private javax.swing.JLabel fixedMinPrioLabel;
     private javax.swing.JLabel priorityLabel;
