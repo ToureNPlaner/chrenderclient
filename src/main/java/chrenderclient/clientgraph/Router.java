@@ -155,30 +155,30 @@ public class Router {
             }
         }
 
-
-        //Predicate<Bundle> containsSourceAndTarget = b -> b.getBbox().contains(srcX, srcY) && b.getBbox().contains(trgtX, trgtY);
-        //Iterator<Bundle> it = bundles.parallelStream().filter(containsSourceAndTarget).iterator();
         Iterator<Bundle> it = bundles.iterator();
         while (it.hasNext()) {
             Bundle bundle = it.next();
-            for (int i = 0; i < bundle.nodes.length; ++i) {
-                Node n = bundle.nodes[i];
-                if (!n.hasCoordinates()) {
-                    continue;
-                }
+            BoundingBox bbox = bundle.getDraw().getBbox();
+            if(bbox.contains(srcX, srcY) || bbox.contains(trgtX, trgtY)) {
+                for (int i = 0; i < bundle.nodes.length; ++i) {
+                    Node n = bundle.nodes[i];
+                    if (!n.hasCoordinates()) {
+                        continue;
+                    }
 
-                double srcDist = Math.hypot(n.getX() - srcX, n.getY() - srcY);
-                if (srcDist < bestSrcDist) {
-                    srcBundle = bundle;
-                    srcId = i;
-                    bestSrcDist = srcDist;
-                }
+                    double srcDist = Math.hypot(n.getX() - srcX, n.getY() - srcY);
+                    if (srcDist < bestSrcDist) {
+                        srcBundle = bundle;
+                        srcId = i;
+                        bestSrcDist = srcDist;
+                    }
 
-                double trgtDist = Math.hypot(n.getX() - trgtX, n.getY() - trgtY);
-                if (trgtDist < bestTrgtDist) {
-                    trgtBundle = bundle;
-                    trgtId = i;
-                    bestTrgtDist = trgtDist;
+                    double trgtDist = Math.hypot(n.getX() - trgtX, n.getY() - trgtY);
+                    if (trgtDist < bestTrgtDist) {
+                        trgtBundle = bundle;
+                        trgtId = i;
+                        bestTrgtDist = trgtDist;
+                    }
                 }
             }
         }
