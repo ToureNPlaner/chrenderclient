@@ -9,7 +9,7 @@ import chrenderclient.clientgraph.Bundle;
  * in arbitrary order and this order may change with offer
  * operations as bundles are evicted.
  */
-public class BundleCache implements Iterable<Bundle> {
+public final class BundleCache implements Iterable<Bundle> {
     public final class Iterator implements java.util.Iterator<Bundle> {
         private Iterator() {
             this.index = -1;
@@ -42,10 +42,14 @@ public class BundleCache implements Iterable<Bundle> {
     }
 
 
-    public BundleCache(int cacheSize, double threshold, int minEdgeCount){
+    public BundleCache(int cacheSize, double nonOverlapThreshold, int minEdgeCount){
+        if(cacheSize < 1){
+            throw new IllegalArgumentException("Caches need to have size at least 1");
+        }
         bundles = new Bundle[cacheSize];
         n = 0;
-        this.overlapThreshold = threshold;
+        insertIndex = 0;
+        this.nonOverlapThreshold = nonOverlapThreshold;
         this.minEdgeCount = minEdgeCount;
     }
 
@@ -70,55 +74,42 @@ public class BundleCache implements Iterable<Bundle> {
         return diffArea;
     }
 
-    public void offer(Bundle bundle){
-        // Don't care about empty bundles
-        if(bundle.requestParams.bbox.isEmpty()){
+    public void offer(Bundle bundle) {
+        // We throw away empty bundles
+        if (bundle.nodes.length < 1) {
+            return;
+        }
+        // First element initializes the hot seat
+        if(n == 0){
+            n = 1;
+            bundles[0] = bundle;
             return;
         }
 
-        // Warm up phase
-        if(n < bundles.length){
-            if(n <= 1){
-                // The first two we simply add, unless they are empty
-                bundles[n] = bundle;
-                n++;
-            } else {
-                // After we replace the hot element (the zeroth)
-                // or grow if all of the older ones is are at least 75% different
-                int insert = 0;
-                double minDiff = 1.0;
-                for(int i = 1; i < n; i++){
-                    double diff = rateDifference(bundle, bundles[i]);
-                    if(diff <= minDiff){
-                        minDiff = diff;
-                    }
+        if(bundle.downEdges.length + bundle.upEdges.length > minEdgeCount) {
+            double minDiff = Double.MAX_VALUE;
+            // Position 0 is the hot seat all others are organized as a ring buffer
+            for (int i = 1; i < n; i++) {
+                double diff = rateDifference(bundle, bundles[i]);
+                if (diff < minDiff) {
+                    minDiff = diff;
                 }
-                if(minDiff > overlapThreshold && bundle.getDraw().size() > minEdgeCount){
-                    insert = n;
+            }
+
+            if (minDiff > nonOverlapThreshold) {
+                // Cache the bundle
+                if (n < bundles.length) {
                     n++;
-                    System.out.println("Adding bundle");
                 }
-                bundles[insert] = bundle;
+                // We skip the hot seat at pos=0
+                bundles[insertIndex + 1] = bundle;
+                insertIndex = (insertIndex + 1) % (bundles.length - 1);
+                return;
             }
-            return;
         }
 
-        // We keep the zeroth element hot and all others at least threshold different
-        int minIndex = 0;
-        double minDiff = 1.0;
-        for(int i = 1; i < n; i++){
-            double diff = rateDifference(bundle, bundles[i]);
-            if(diff <= minDiff){
-                minDiff = diff;
-                minIndex = i;
-            }
-        }
-        if(minDiff > overlapThreshold && bundle.getDraw().size() > minEdgeCount) {
-            bundles[minIndex] = bundle;
-            System.out.println("Replacing old bundle");
-            return;
-        }
         bundles[0] = bundle;
+        return;
     }
 
     public int maxSize() {
@@ -138,7 +129,12 @@ public class BundleCache implements Iterable<Bundle> {
     }
 
     private int n;
-    private final double overlapThreshold;
+    /*
+    We use a ring buffer intenally and insertIndex always points to the position where
+    we insert so either an empty position or the oldest element.
+     */
+    private int insertIndex;
+    private final double nonOverlapThreshold;
     private final int minEdgeCount;
     private final Bundle[] bundles;
 }
