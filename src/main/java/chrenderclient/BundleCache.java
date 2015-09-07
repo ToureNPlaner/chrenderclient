@@ -96,7 +96,7 @@ public final class BundleCache implements Iterable<Bundle> {
                 }
             }
 
-            if (minDiff > nonOverlapThreshold) {
+            if (minDiff > nonOverlapThreshold && minDiff < Double.MAX_VALUE) {
                 // Cache the bundle
                 if (n < bundles.length) {
                     n++;
