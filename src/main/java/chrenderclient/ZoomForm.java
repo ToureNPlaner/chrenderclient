@@ -28,6 +28,7 @@ public class ZoomForm extends javax.swing.JFrame {
     public int height = 0;
 
 
+
     /**
      * Creates new form zoomForm
      *
@@ -73,6 +74,7 @@ public class ZoomForm extends javax.swing.JFrame {
         TestMenu = new javax.swing.JMenu();
         TestCoreLevelSize = new javax.swing.JMenuItem();
         TestBundleCoreSize = new javax.swing.JMenuItem();
+        TestBundleRendering = new javax.swing.JMenuItem();
         TestRouting = new javax.swing.JMenuItem();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
@@ -218,6 +220,13 @@ public class ZoomForm extends javax.swing.JFrame {
             }
         });
 
+        TestBundleRendering.setText("Bundle Rendering vs Level)");
+        TestBundleRendering.addActionListener(new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                zoomPanel.BundleRenderingTest(evt);
+            }
+        });
         TestRouting.setText("Routing Test");
         TestRouting.addActionListener(new java.awt.event.ActionListener() {
             @Override
@@ -227,6 +236,7 @@ public class ZoomForm extends javax.swing.JFrame {
         });
         TestMenu.add(TestRouting);
         TestMenu.add(TestBundleCoreSize);
+        TestMenu.add(TestBundleRendering);
         TestMenu.add(TestCoreLevelSize);
 
         MenuBar.add(TestMenu);
@@ -373,6 +383,7 @@ public class ZoomForm extends javax.swing.JFrame {
     private javax.swing.JMenu TestMenu;
     private javax.swing.JMenuItem TestCoreLevelSize;
     private javax.swing.JMenuItem TestBundleCoreSize;
+    private javax.swing.JMenuItem TestBundleRendering;
     private javax.swing.JMenuItem TestRouting;
     private javax.swing.JMenuItem UndoLastMarkerMenuItem;
     private javax.swing.JLabel fixedMinPrioLabel;

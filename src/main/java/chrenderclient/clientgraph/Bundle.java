@@ -14,6 +14,8 @@ import java.io.InputStream;
  * some minimum level
  */
 public class Bundle {
+
+
     public enum LevelMode {
         AUTO, HINTED, EXACT
     }
@@ -49,6 +51,7 @@ public class Bundle {
 
     // Debug data
     public long requestSize;
+    public long readTimeNano;
 
 
     private Bundle(RequestParams requestParams, int level, int nodeCount, int upEdgeCount, int downEdgeCount) {

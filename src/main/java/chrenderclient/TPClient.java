@@ -117,12 +117,12 @@ public class TPClient {
             long size = resEntity.getContentLength();
             long start = System.nanoTime();
             res = Bundle.readJson(mapper, new BufferedInputStream(resEntity.getContent()), requestParams);
-            res.requestSize = size;
             long end = System.nanoTime();
+            res.readTimeNano = end-start;
             double mibs = ((double) res.requestSize)/((double) (2<<20));
             System.out.println("BUNDLEDATA[Request Size (MiB),Time to Read (ms), Core Size, Level, Nodes, Edges, Upwards Edges, Downwards Edges, Draw Vertices, Draw Lines]:"
                     +mibs+
-                    ", "+Double.toString((end-start)/1000000.0)+
+                    ", "+Double.toString(res.readTimeNano/1000000.0)+
                     ", "+res.getCoreSize()+
                     ", "+res.level+
                     ", " +res.nodes.length+

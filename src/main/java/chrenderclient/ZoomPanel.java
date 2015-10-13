@@ -166,6 +166,8 @@ public final class ZoomPanel extends JPanel {
         this.AUTO = !this.AUTO;
     }
 
+
+
     private static class DrawInfo {
         public String name;
         public String coreRequestSize;
@@ -350,7 +352,20 @@ public final class ZoomPanel extends JPanel {
                     bundleDraw.downEdges = bundle.downEdges.length;
                     bundleDraw.lines = bundle.getDraw().size();
                     bundleDraw.linesDrawn = drawBundle(g2D, bundle, trans, mediumStreetStroke);
-                    System.out.println(Utils.took("Drawing Bundle", start));
+                    long drawTimeNano = System.nanoTime()-start;
+                    double mibs = ((double) bundle.requestSize)/((double) (2<<20));
+                    System.out.println("DRAWDATA[Request Size (MiB),Time to Read (ms), Core Size, Level, Nodes, Edges, Upwards Edges, Downwards Edges, Draw Vertices, Draw Lines, Time to Draw (ms)]:"
+                            +mibs+
+                            ", "+Double.toString(bundle.readTimeNano/1000000.0)+
+                            ", "+bundle.getCoreSize()+
+                            ", "+bundle.level+
+                            ", " +bundle.nodes.length+
+                            ", "+(bundle.upEdges.length+bundle.downEdges.length)+
+                            ", "+bundle.upEdges.length+
+                            ", "+bundle.downEdges.length+
+                            ", "+bundle.getDraw().numVertices()+
+                            ", "+bundle.getDraw().size()+
+                            ", "+Double.toString(drawTimeNano/1000000.0));
                     drawInfo.bundles.add(bundleDraw);
                     //bundleBaseColor = bundleBaseColor.darker();
                     if (showPriorityNodes) {
@@ -697,6 +712,37 @@ public final class ZoomPanel extends JPanel {
         } catch (Exception e){
             e.printStackTrace();
         }
+
+    }
+
+    public void BundleRenderingTest(ActionEvent evt) {
+        final BoundingBox currentBBox = this.bbox;
+        (new SwingWorker<Void, Void>(){
+            @Override
+            protected Void doInBackground() throws Exception {
+                try {
+                    extractGraph(bbox);
+                    DrawInfo info = saveImage("bundle_rendering.png");
+                    info.name = "Bundle Rendering";
+                    saveImageInfo("bundle_rendering_info.json", info);
+                    for(int level = 0; level <= 400; level++) {
+                        long start = System.nanoTime();
+                        BoundingBox extendedBBox = computeExtendedBBox(bbox);
+                        final Transformer t = new Transformer(currentBBox, drawArea);
+                        Bundle freshBundle = tp.bbBundleRequest(extendedBBox, coreSize, level, t.toRealDist(minLen), t.toRealDist(maxLen), 0.01, Bundle.LevelMode.EXACT);
+                        bundles.offer(freshBundle);
+                        System.out.println(Utils.took("extractGraph", start));
+                        repaint();
+                        revalidate();
+                        Thread.sleep(25);
+                    }
+                } catch (Exception e){
+                    e.printStackTrace();
+                }
+                return null;
+            }
+
+        }).execute();
 
     }
 
