@@ -67,13 +67,14 @@ public class TPClient {
             // do something useful with the response body
             // and ensure it is fully consumed
             double mibs = ((double) res.requestSize)/((double) (2<<20));
-            System.out.println("COREDATA[Request Size (MiB),Time to Read (ms), Nodes, Edges, Draw Vertices, Draw Lines]:"
+            System.out.println("COREDATA[Request Size (MiB),Time to Read (ms), Nodes, Edges, Draw Vertices, Draw Lines, Edge Paths Length]:"
                     +mibs+
                     ", "+Double.toString((end-start)/1000000.0)+
                     ", " +res.getNodeCount()+
                     ", "+res.getEdgeCount()+
                     ", "+res.getDraw().numVertices()+
-                    ", "+res.getDraw().size());
+                    ", "+res.getDraw().size()+
+                    ", "+res.edgePathsLength);
             EntityUtils.consume(resEntity);
         } finally {
             response.close();
@@ -82,7 +83,7 @@ public class TPClient {
     }
 
     public Bundle bbBundleRequest(BoundingBox bbox, int coreSize, int minPrio, int minLen, int maxLen, double maxRatio, Bundle.LevelMode levelMode) throws IOException {
-        Bundle.RequestParams requestParams = new Bundle.RequestParams(bbox, 800, coreSize, minPrio, minLen, maxLen, maxRatio, levelMode);
+        Bundle.RequestParams requestParams = new Bundle.RequestParams(bbox, 600, coreSize, minPrio, minLen, maxLen, maxRatio, levelMode);
 
         String mode = levelMode.toString().toLowerCase();
         HttpPost httpPost = new HttpPost(this.uri + "/algbbbundle");
@@ -119,8 +120,9 @@ public class TPClient {
             res = Bundle.readJson(mapper, new BufferedInputStream(resEntity.getContent()), requestParams);
             long end = System.nanoTime();
             res.readTimeNano = end-start;
+            res.requestSize = size;
             double mibs = ((double) res.requestSize)/((double) (2<<20));
-            System.out.println("BUNDLEDATA[Request Size (MiB),Time to Read (ms), Core Size, Level, Nodes, Edges, Upwards Edges, Downwards Edges, Draw Vertices, Draw Lines]:"
+            System.out.println("BUNDLEDATA[Request Size (MiB),Time to Read (ms), Core Size, Level, Nodes, Edges, Upwards Edges, Downwards Edges, Draw Vertices, Draw Lines, Edge Paths Length]:"
                     +mibs+
                     ", "+Double.toString(res.readTimeNano/1000000.0)+
                     ", "+res.getCoreSize()+
@@ -130,7 +132,8 @@ public class TPClient {
                     ", "+res.upEdges.length+
                     ", "+res.downEdges.length+
                     ", "+res.getDraw().numVertices()+
-                    ", "+res.getDraw().size());
+                    ", "+res.getDraw().size()+
+                    ", "+res.edgePathsLength);
             // do something useful with the response body
             // and ensure it is fully consumed
             EntityUtils.consume(resEntity);

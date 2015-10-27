@@ -52,6 +52,7 @@ public class Bundle {
     // Debug data
     public long requestSize;
     public long readTimeNano;
+    public long edgePathsLength = 0;
 
 
     private Bundle(RequestParams requestParams, int level, int nodeCount, int upEdgeCount, int downEdgeCount) {
@@ -244,6 +245,7 @@ public class Bundle {
                         setSourceCoords(bundle, edgeNum, currSrc, e);
                     }
                     bundle.upEdges[edgeNum] = e;
+                    bundle.edgePathsLength += e.path.size();
                     edgeNum++;
                 }
                 if (edgeNum < bundle.upEdges.length) {
@@ -266,6 +268,7 @@ public class Bundle {
                         bundle.nodes[currTrgt - bundle.getCoreSize()].setDownIndex(edgeNum);
                     }
                     bundle.downEdges[edgeNum] = e;
+                    bundle.edgePathsLength += e.path.size();
                     edgeNum++;
                 }
                 if (edgeNum < bundle.downEdges.length) {

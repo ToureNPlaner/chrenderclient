@@ -47,6 +47,8 @@ public final class CoreGraph {
 
     // Debugging
     public long requestSize;
+    public long edgePathsLength = 0;
+
 
     private CoreGraph(RequestParams requestParams, int nodeCount, int edgeCount, DrawData draw) {
         this.requestParams = requestParams;
@@ -191,6 +193,7 @@ public final class CoreGraph {
                             int lastDrawEdgeId = path.get(path.size()-1);
                             result.setNodeCoords(trgt, draw.getX2(lastDrawEdgeId), draw.getY2(lastDrawEdgeId));
                         }
+                        result.edgePathsLength += path.size();
                         numEdges++;
                     }
                 }

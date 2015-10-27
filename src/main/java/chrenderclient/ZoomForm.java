@@ -38,7 +38,7 @@ public class ZoomForm extends javax.swing.JFrame {
         coreSize = 1000;
         this.tp = tp;
         initComponents();
-        Dimension dim = new Dimension(1900, 1000);
+        Dimension dim = new Dimension(1900, 1080);
         this.setPreferredSize(dim);
         //this.resize(new Dimension(400, 660));
         final int startLevel = 20;

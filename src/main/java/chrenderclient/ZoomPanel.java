@@ -47,7 +47,7 @@ public final class ZoomPanel extends JPanel {
     private int originalY = -1;
 
     private int minLen = 10;
-    private int maxLen = 40;
+    private int maxLen = 34;
     public int lastLevel = Integer.MAX_VALUE;
     private boolean AUTO = true;
     private boolean justDragged = false;
@@ -56,8 +56,10 @@ public final class ZoomPanel extends JPanel {
     private boolean showBundleRects = false;
     private boolean showBundles = true;
     private boolean showCore = true;
-    private double extendFactor = 3;
-    private double changeFactor = 1.8;
+    private final double extendFactor = 1;
+    private final double changeFactor = 1.8;
+    private final int init_width = 1920;
+    private final int init_height = 1080;
 
 
     private static final BasicStroke smallStreetStroke = new BasicStroke(1F);
@@ -98,8 +100,8 @@ public final class ZoomPanel extends JPanel {
             }
         });
 
-        this.setPreferredSize(new Dimension(1800, 900));
-        this.drawArea = new Rectangle2D.Double(0, 0, 1800, 900);
+        this.setPreferredSize(new Dimension(init_width, init_height));
+        this.drawArea = new Rectangle2D.Double(0, 0, init_width, init_height);
         setView();
     }
 
@@ -477,8 +479,8 @@ public final class ZoomPanel extends JPanel {
     private void setView() {
         int x = -431560;
         int y =  -119163;
-        int width = 1700611;
-        int height = 850305;
+        int width = init_width*612;
+        int height = init_height*612;
         bbox = new BoundingBox(x, y, width, height);
     }
 
@@ -562,16 +564,13 @@ public final class ZoomPanel extends JPanel {
     }
 
     private void zoomPanelMouseWheelMoved(java.awt.event.MouseWheelEvent evt) {
-        System.out.println("Mouse wheel moved");
         int notches = evt.getWheelRotation();
-        System.out.println("notch: " + notches);
         int dx = evt.getX() - xBorder;
         int dy = evt.getY() - yBorder;
 
         Transformer t = new Transformer(bbox, drawArea);
         dx = t.toRealDist(dx);
         dy = t.toRealDist(dy);
-        System.out.println("pos: " + dx + ", " + dy);
 
         if (notches > 0) {
             bbox.x -= (changeFactor - 1) * dx;
@@ -725,7 +724,7 @@ public final class ZoomPanel extends JPanel {
                     DrawInfo info = saveImage("bundle_rendering.png");
                     info.name = "Bundle Rendering";
                     saveImageInfo("bundle_rendering_info.json", info);
-                    for(int level = 0; level <= 400; level++) {
+                    for(int level = 0; level < 400; level++) {
                         long start = System.nanoTime();
                         BoundingBox extendedBBox = computeExtendedBBox(bbox);
                         final Transformer t = new Transformer(currentBBox, drawArea);
