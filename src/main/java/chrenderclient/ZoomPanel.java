@@ -56,7 +56,7 @@ public final class ZoomPanel extends JPanel {
     private boolean showBundleRects = false;
     private boolean showBundles = true;
     private boolean showCore = true;
-    private final double extendFactor = 1;
+    private final double extendFactor = 3;
     private final double changeFactor = 1.8;
     private final int init_width = 1920;
     private final int init_height = 1080;
