@@ -245,7 +245,6 @@ public class Bundle {
                         setSourceCoords(bundle, edgeNum, currSrc, e);
                     }
                     bundle.upEdges[edgeNum] = e;
-                    bundle.edgePathsLength += e.path.size();
                     edgeNum++;
                 }
                 if (edgeNum < bundle.upEdges.length) {
@@ -268,7 +267,6 @@ public class Bundle {
                         bundle.nodes[currTrgt - bundle.getCoreSize()].setDownIndex(edgeNum);
                     }
                     bundle.downEdges[edgeNum] = e;
-                    bundle.edgePathsLength += e.path.size();
                     edgeNum++;
                 }
                 if (edgeNum < bundle.downEdges.length) {
@@ -281,10 +279,7 @@ public class Bundle {
     private static void setSourceCoords(Bundle bundle, int edgeNum, int currSrc, Edge e) {
         int index = currSrc - bundle.getCoreSize();
         assert bundle.nodes[index] != null;
-        if(e.path.size() > 0) {
-            int firstDrawIndex = e.path.get(0);
-            bundle.nodes[index].setCoords(bundle.draw.getX1(firstDrawIndex), bundle.draw.getY1(firstDrawIndex));
-        }
+        bundle.nodes[index].setCoords(bundle.draw.getX1(e.drawEdgeIndex), bundle.draw.getY1(e.drawEdgeIndex));
         bundle.nodes[index].setUpIndex(edgeNum);
     }
 }

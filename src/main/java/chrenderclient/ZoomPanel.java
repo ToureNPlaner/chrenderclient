@@ -251,23 +251,27 @@ public final class ZoomPanel extends JPanel {
         DrawData draw = bundle.getDraw();
         BoundingBox bbox = bundle.requestParams.bbox;
         for (int drawElement = 0; drawElement < draw.size(); drawElement++) {
-            int x1 = draw.getX1(drawElement);
-            int y1 = draw.getY1(drawElement);
-            int x2 = draw.getX2(drawElement);
-            int y2 = draw.getY2(drawElement);
-            // Don't draw edges outside the request bbox, they are only for drawing paths
-            if(bbox.contains(x1, y1) || bbox.contains(x2, y2) ) {
-                int dx1 = trans.toDrawX(x1);
-                int dy1 = trans.toDrawY(y1);
-                int dx2 = trans.toDrawX(x2);
-                int dy2 = trans.toDrawY(y2);
-                if (drawArea.contains(dx1, dy1) || drawArea.contains(dx2, dy2)) {
-                    g2D.setColor(typeToColor(draw.getType(drawElement)));
-                    g2D.setStroke(stroke);
-                    g2D.drawLine(dx1, dy1, dx2, dy2);
-                    linesDrawn++;
+            int drawScA = draw.getDrawScA(drawElement);
+            if(drawScA == -1) {
+                int x1 = draw.getX1(drawElement);
+                int y1 = draw.getY1(drawElement);
+                int x2 = draw.getX2(drawElement);
+                int y2 = draw.getY2(drawElement);
+                // Don't draw edges outside the request bbox, they are only for drawing paths
+                if (bbox.contains(x1, y1) || bbox.contains(x2, y2)) {
+                    int dx1 = trans.toDrawX(x1);
+                    int dy1 = trans.toDrawY(y1);
+                    int dx2 = trans.toDrawX(x2);
+                    int dy2 = trans.toDrawY(y2);
+                    if (drawArea.contains(dx1, dy1) || drawArea.contains(dx2, dy2)) {
+                        g2D.setColor(typeToColor(draw.getType(drawElement)));
+                        g2D.setStroke(stroke);
+                        g2D.drawLine(dx1, dy1, dx2, dy2);
+                        linesDrawn++;
+                    }
                 }
             }
+
         }
         return linesDrawn;
     }
@@ -275,15 +279,18 @@ public final class ZoomPanel extends JPanel {
     private final int drawCore(Graphics2D g2D, DrawData draw, Transformer trans, BasicStroke stroke) {
         int linesDrawn = 0;
         for (int drawElement = 0; drawElement < draw.size(); drawElement++) {
-            int x1 = trans.toDrawX(draw.getX1(drawElement));
-            int y1 = trans.toDrawY(draw.getY1(drawElement));
-            int x2 = trans.toDrawX(draw.getX2(drawElement));
-            int y2 = trans.toDrawY(draw.getY2(drawElement));
-            if (drawArea.contains(x1, y1) || drawArea.contains(x2, y2)) {
-                g2D.setColor(typeToColor(draw.getType(drawElement)));
-                g2D.setStroke(stroke);
-                g2D.drawLine(x1, y1, x2, y2);
-                linesDrawn++;
+            int drawScA = draw.getDrawScA(drawElement);
+            if (drawScA == -1) {
+                int x1 = trans.toDrawX(draw.getX1(drawElement));
+                int y1 = trans.toDrawY(draw.getY1(drawElement));
+                int x2 = trans.toDrawX(draw.getX2(drawElement));
+                int y2 = trans.toDrawY(draw.getY2(drawElement));
+                if (drawArea.contains(x1, y1) || drawArea.contains(x2, y2)) {
+                    g2D.setColor(typeToColor(draw.getType(drawElement)));
+                    g2D.setStroke(stroke);
+                    g2D.drawLine(x1, y1, x2, y2);
+                    linesDrawn++;
+                }
             }
         }
         return linesDrawn;
@@ -292,15 +299,18 @@ public final class ZoomPanel extends JPanel {
     private final int drawPath(Graphics2D g2D, DrawData draw, Transformer trans, BasicStroke stroke) {
         int linesDrawn = 0;
         for (int drawElement = 0; drawElement < draw.size(); drawElement++) {
-            int x1 = trans.toDrawX(draw.getX1(drawElement));
-            int y1 = trans.toDrawY(draw.getY1(drawElement));
-            int x2 = trans.toDrawX(draw.getX2(drawElement));
-            int y2 = trans.toDrawY(draw.getY2(drawElement));
-            if (drawArea.contains(x1, y1) || drawArea.contains(x2, y2)) {
-                g2D.setColor(Color.red);
-                g2D.setStroke(stroke);
-                g2D.drawLine(x1, y1, x2, y2);
-                linesDrawn++;
+            int drawScA = draw.getDrawScA(drawElement);
+            if (drawScA == -1) {
+                int x1 = trans.toDrawX(draw.getX1(drawElement));
+                int y1 = trans.toDrawY(draw.getY1(drawElement));
+                int x2 = trans.toDrawX(draw.getX2(drawElement));
+                int y2 = trans.toDrawY(draw.getY2(drawElement));
+                if (drawArea.contains(x1, y1) || drawArea.contains(x2, y2)) {
+                    g2D.setColor(Color.red);
+                    g2D.setStroke(stroke);
+                    g2D.drawLine(x1, y1, x2, y2);
+                    linesDrawn++;
+                }
             }
         }
         return linesDrawn;

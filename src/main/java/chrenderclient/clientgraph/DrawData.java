@@ -13,9 +13,9 @@ import java.io.IOException;
  * Created by niklas on 15.06.15.
  */
 public class DrawData {
-    private final IntArrayList vertexData;
+    private IntArrayList vertexData;
     private final IntArrayList edgeData;
-    private static final int EDGE_RECORD_SIZE = 3;
+    private static final int EDGE_RECORD_SIZE = 5;
     private static final int VERTEX_RECORD_SIZE = 2;
     private BoundingBox bbox;
 
@@ -65,39 +65,40 @@ public class DrawData {
         return edgeData.get(edgeId*EDGE_RECORD_SIZE+2);
     }
 
+    public int getDrawScA(int edgeId) {return edgeData.get(edgeId*EDGE_RECORD_SIZE+3);}
+
+    public int getDrawScB(int edgeId) {
+        return edgeData.get(edgeId*EDGE_RECORD_SIZE+4);
+    }
+
     public BoundingBox getBbox() {
         return bbox;
     }
 
-    private void addVertex(int x, int y){
+    /**
+     * Adds a vertex to this draw and returns its new vertexId
+     * @param x
+     * @param y
+     * @return
+     */
+    protected final int addVertex(int x, int y){
         vertexData.add(x, y);
         bbox.expandIfNeeded(x, y);
+        return numVertices()-1;
     }
-
-
 
     /**
-     * Add indexed data from other draw, note that this doesn't reuse vertices with the same
-     * coordinates currently it's only for generating simple DrawData e.g. for paths
-     * @param draw
-     * @param path
+     * Add the edge to this draw and return its new index
+     * @param srcId
+     * @param trgtId
+     * @param type
+     * @param drawScA
+     * @param drawScB
+     * @return
      */
-    public final void addFromIndexed(DrawData draw, IntArrayList path) {
-        for (int i = 0; i < path.size(); ++i) {
-            int edgeId = path.get(i);
-            int x1 = draw.getX1(edgeId);
-            int y1 = draw.getY1(edgeId);
-            int x2 = draw.getX2(edgeId);
-            int y2 = draw.getY2(edgeId);
-            int type = draw.getType(edgeId);
-            addVertex(x1, y1);
-            addVertex(x2, y2);
-            edgeData.add(vertexData.size()/VERTEX_RECORD_SIZE - 2, vertexData.size()/VERTEX_RECORD_SIZE - 1, type);
-        }
-    }
-
-    private void addEdge(int srcId, int trgtId, int type){
-        edgeData.add(srcId, trgtId, type);
+    protected int addEdge(int srcId, int trgtId, int type, int drawScA, int drawScB){
+        edgeData.add(srcId, trgtId, type, drawScA, drawScB);
+        return this.size() - 1;
     }
 
     public static DrawData readJson(JsonParser jp, JsonToken token) throws IOException {
@@ -125,13 +126,15 @@ public class DrawData {
             } else if ("lines".equals(fieldName)) {
                 // Should be on START_ARRAY
                 if (token != JsonToken.START_ARRAY) {
-                    throw new JsonParseException("path is no array", jp.getCurrentLocation());
+                    throw new JsonParseException("lines is no array", jp.getCurrentLocation());
                 }
                 while (jp.nextToken() != JsonToken.END_ARRAY) {
                     int srcId = jp.getIntValue();
                     int trgtId = jp.nextIntValue(0);
                     int type = jp.nextIntValue(0);
-                    res.addEdge(srcId, trgtId, type);
+                    int drawScA = jp.nextIntValue(0);
+                    int drawScB = jp.nextIntValue(0);
+                    res.addEdge(srcId, trgtId, type, drawScA, drawScB);
                 }
             }
         }

@@ -1,7 +1,6 @@
 package chrenderclient.clientgraph;
 
 
-import com.carrotsearch.hppc.IntArrayList;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
@@ -43,7 +42,7 @@ public final class CoreGraph {
     private int[] srcs;
     private int[] trgts;
     private int[] costs;
-    private IntArrayList[] paths;
+    private int[] drawEdgeIndices;
 
     // Debugging
     public long requestSize;
@@ -61,7 +60,7 @@ public final class CoreGraph {
         srcs = new int[edgeCount];
         trgts = new int[edgeCount];
         costs = new int[edgeCount];
-        paths = new IntArrayList[edgeCount];
+        drawEdgeIndices = new int[edgeCount];
         this.draw = draw;
     }
 
@@ -80,11 +79,11 @@ public final class CoreGraph {
         offsetOut[nodeCount] = outSum;
     }
 
-    private void setEdge(int pos, int src, int trgt, int cost, IntArrayList path) {
+    private void setEdge(int pos, int src, int trgt, int cost, int drawEdgeIndex) {
         srcs[pos] = src;
         trgts[pos] = trgt;
         costs[pos] = cost;
-        paths[pos] = path;
+        drawEdgeIndices[pos] = drawEdgeIndex;
     }
 
     public int getSource(int edgeId) {
@@ -99,8 +98,8 @@ public final class CoreGraph {
         return costs[edgeId];
     }
 
-    public IntArrayList getPath(int edgeId) {
-        return paths[edgeId];
+    public int getDrawEdgeIndex(int edgeId) {
+        return drawEdgeIndices[edgeId];
     }
 
     public int getOutEdgeCount(int nodeId) {
@@ -172,28 +171,13 @@ public final class CoreGraph {
                     }
 
                     while ((token = jp.nextToken()) != JsonToken.END_ARRAY) {
-                        IntArrayList path = new IntArrayList();
                         int src = jp.getIntValue();
                         int trgt = jp.nextIntValue(0);
                         int cost = jp.nextIntValue(0);
-
-                        // Should be on START_ARRAY
-                        if (jp.nextToken() != JsonToken.START_ARRAY) {
-                            throw new JsonParseException("draw is no array", jp.getCurrentLocation());
-                        }
-
-                        while (jp.nextToken() != JsonToken.END_ARRAY) {
-                            // TODO Error checking i.e. for too few parameters would be kinda nice
-                            path.add(jp.getIntValue());
-                        }
-                        result.setEdge(numEdges, src, trgt, cost, path);
-                        if(path.size() > 0){
-                            int firstDrawEdgeId = path.get(0);
-                            result.setNodeCoords(src, draw.getX1(firstDrawEdgeId), draw.getY1(firstDrawEdgeId));
-                            int lastDrawEdgeId = path.get(path.size()-1);
-                            result.setNodeCoords(trgt, draw.getX2(lastDrawEdgeId), draw.getY2(lastDrawEdgeId));
-                        }
-                        result.edgePathsLength += path.size();
+                        int drawEdgeIndex = jp.nextIntValue(0);
+                        result.setEdge(numEdges, src, trgt, cost, drawEdgeIndex);
+                        result.setNodeCoords(src, draw.getX1(drawEdgeIndex), draw.getY1(drawEdgeIndex));
+                        result.setNodeCoords(trgt, draw.getX2(drawEdgeIndex), draw.getY2(drawEdgeIndex));
                         numEdges++;
                     }
                 }

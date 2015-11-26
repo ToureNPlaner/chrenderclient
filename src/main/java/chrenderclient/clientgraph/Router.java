@@ -128,6 +128,7 @@ public class Router {
                         ", " + coreFwdSettled.size() +
                         ", " + coreBwdSettled.size()
         );
+        System.err.println("bestPath elements: "+bestPath.size());
         return bestPath;
     }
 
@@ -236,22 +237,24 @@ public class Router {
         if (mergeBestDist < Integer.MAX_VALUE) {
             path = new DrawData();
             // up graph
+            DrawSubgrapher srcBundleSubgrapher = new DrawSubgrapher(srcBundle.getDraw(), path);
             int currNode = bestUpId;
             while (currNode != srcId) {
                 int upEdgeIndex = upPreds[currNode];
                 Edge edge = srcBundle.upEdges[upEdgeIndex];
                 // if order mattered added at start
-                path.addFromIndexed(srcBundle.getDraw(), edge.path);
+                srcBundleSubgrapher.unpackAndAdd(edge.drawEdgeIndex);
                 currNode = edge.src - srcBundle.getCoreSize();
             }
 
             // down graph
+            DrawSubgrapher trgtBundleSubgrapher = new DrawSubgrapher(trgtBundle.getDraw(), path);
             currNode = bestDownId;
             while (currNode != trgtId) {
                 int downEdgeIndex = downPreds[currNode];
                 Edge currEdge = trgtBundle.downEdges[downEdgeIndex];
                 // if order mattered added  at end
-                path.addFromIndexed(trgtBundle.getDraw(), currEdge.path);
+                trgtBundleSubgrapher.unpackAndAdd(currEdge.drawEdgeIndex);
                 currNode = currEdge.trgt - trgtBundle.getCoreSize();
             }
         }
@@ -268,42 +271,45 @@ public class Router {
         // down graph
         int currNode;
         if (trgtBundle != null) {
+            DrawSubgrapher trgtBundleSubgrapher = new DrawSubgrapher(trgtBundle.getDraw(), path);
             int downEdgeIndex = coreLeavePreds[bestId];
             Edge currEdge = trgtBundle.downEdges[downEdgeIndex];
             currNode = currEdge.trgt - trgtBundle.getCoreSize();
             // if order mattered added at end
-            path.addFromIndexed(trgtBundle.getDraw(), currEdge.path);
+            trgtBundleSubgrapher.unpackAndAdd(currEdge.drawEdgeIndex);
             while (currNode != trgtId) {
                 downEdgeIndex = downPreds[currNode];
                 currEdge = trgtBundle.downEdges[downEdgeIndex];
                 // if order mattered added at end
-                path.addFromIndexed(trgtBundle.getDraw(), currEdge.path);
+                trgtBundleSubgrapher.unpackAndAdd(currEdge.drawEdgeIndex);
                 currNode = currEdge.trgt - trgtBundle.getCoreSize();
             }
         }
 
 
         // core graph
+        DrawSubgrapher coreSubgrapher = new DrawSubgrapher(core.getDraw(), path);
         currNode = bestId;
         while (corePreds[currNode] != -1) {
             int currEdgeId = corePreds[currNode];
             // if order mattered added at start
-            path.addFromIndexed(core.getDraw(), core.getPath(currEdgeId));
+            coreSubgrapher.unpackAndAdd(core.getDrawEdgeIndex(currEdgeId));
             currNode = core.getSource(currEdgeId);
         }
 
         // up graph
         if (srcBundle != null) {
+            DrawSubgrapher srcBundleSubgrapher = new DrawSubgrapher(srcBundle.getDraw(), path);
             int upEdgeIndex = coreEnterPreds[currNode];
             Edge edge = srcBundle.upEdges[upEdgeIndex];
             // if order mattered added at start
-            path.addFromIndexed(srcBundle.getDraw(), edge.path);
+            srcBundleSubgrapher.unpackAndAdd(edge.drawEdgeIndex);
             currNode = edge.src - srcBundle.getCoreSize();
             while (currNode != srcId) {
                 upEdgeIndex = upPreds[currNode];
                 edge = srcBundle.upEdges[upEdgeIndex];
                 // if order mattered added at start
-                path.addFromIndexed(srcBundle.getDraw(), edge.path);
+                srcBundleSubgrapher.unpackAndAdd(edge.drawEdgeIndex);
                 currNode = edge.src - srcBundle.getCoreSize();
             }
         }
